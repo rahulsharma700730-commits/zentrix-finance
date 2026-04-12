@@ -68,7 +68,7 @@ export const HeroSection = () => {
             <Button
               size="lg"
               variant="outline"
-              className="border-white/20 text-white hover:bg-white/10 text-base px-10 py-7 backdrop-blur-sm"
+              className="!border-white/20 !text-white hover:!bg-white/10 text-base px-10 py-7 backdrop-blur-sm"
               onClick={() => document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Calculate Your Returns
