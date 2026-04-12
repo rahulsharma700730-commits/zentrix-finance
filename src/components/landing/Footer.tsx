@@ -18,6 +18,8 @@ export const Footer = () => (
             <li><a href="#how-it-works" className="hover:text-primary transition-colors">How It Works</a></li>
             <li><a href="#calculator" className="hover:text-primary transition-colors">ROI Calculator</a></li>
             <li><a href="#faq" className="hover:text-primary transition-colors">FAQ</a></li>
+            <li><Link to="/about" className="hover:text-primary transition-colors">About Us</Link></li>
+            <li><Link to="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
           </ul>
         </div>
         <div>
@@ -29,10 +31,12 @@ export const Footer = () => (
           </ul>
         </div>
         <div>
-          <h4 className="font-display font-bold mb-4 text-foreground">Contact</h4>
+          <h4 className="font-display font-bold mb-4 text-foreground">Contact & Legal</h4>
           <ul className="space-y-2.5 text-sm text-muted-foreground">
             <li>support@zentrixfinance.com</li>
             <li>Telegram: @zentrixfinance</li>
+            <li className="pt-2"><Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+            <li><Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
             <li className="text-xs text-muted-foreground/70 pt-2">Network: USDT (BEP20 / BSC)</li>
           </ul>
         </div>
