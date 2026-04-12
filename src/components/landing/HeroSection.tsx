@@ -65,14 +65,12 @@ export const HeroSection = () => {
             >
               Start Investing Now <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10 text-base px-10 py-7 backdrop-blur-sm"
+            <button
+              className="inline-flex items-center justify-center rounded-md text-base px-10 py-3.5 font-medium border border-white/20 text-white hover:bg-white/10 backdrop-blur-sm transition-colors"
               onClick={() => document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Calculate Your Returns
-            </Button>
+            </button>
           </div>
 
           {/* Stats row */}
