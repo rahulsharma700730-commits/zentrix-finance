@@ -8,8 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Shield, TrendingUp, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import logo from '@/assets/logo.png';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -47,21 +48,23 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="absolute top-4 left-4">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
-          <ArrowLeft className="w-4 h-4" /> Back
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 bg-gradient-gold-subtle opacity-30" />
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-primary/5 blur-[150px]" />
+
+      <div className="absolute top-4 left-4 z-10">
+        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors font-medium">
+          <ArrowLeft className="w-4 h-4" /> Back to Home
         </Link>
       </div>
-      <div className="absolute top-4 right-4"><ThemeToggle /></div>
+      <div className="absolute top-4 right-4 z-10"><ThemeToggle /></div>
 
-      <Card className="w-full max-w-md border-primary/20">
-        <CardHeader className="text-center">
-          <div className="w-12 h-12 rounded-xl bg-gradient-gold flex items-center justify-center mx-auto mb-4">
-            <span className="text-primary-foreground font-bold text-lg">Z</span>
-          </div>
+      <Card className="w-full max-w-md border-primary/10 shadow-gold relative z-10 bg-card/80 backdrop-blur-sm">
+        <CardHeader className="text-center pb-4">
+          <img src={logo} alt="Zentrix Finance" className="w-14 h-14 rounded-xl mx-auto mb-4" />
           <CardTitle className="text-2xl font-display text-gradient-gold">Zentrix Finance</CardTitle>
-          <CardDescription>Secure investment portal</CardDescription>
+          <CardDescription className="text-muted-foreground">Secure Investment Portal — USDT BEP20</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={tab} onValueChange={setTab}>
@@ -73,19 +76,19 @@ const Auth = () => {
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="investor@example.com" />
+                  <Label className="text-foreground">Email</Label>
+                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="investor@example.com" className="bg-background" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Password</Label>
+                  <Label className="text-foreground">Password</Label>
                   <div className="relative">
-                    <Input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    <Input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" className="bg-background" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
-                <Button type="submit" className="w-full bg-gradient-gold text-primary-foreground hover:opacity-90" disabled={loading}>
+                <Button type="submit" className="w-full bg-gradient-gold text-primary-foreground hover:opacity-90 font-semibold shadow-gold" disabled={loading}>
                   {loading ? 'Logging in...' : 'Login'}
                 </Button>
               </form>
@@ -94,32 +97,46 @@ const Auth = () => {
             <TabsContent value="signup">
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Full Name</Label>
-                  <Input value={fullName} onChange={e => setFullName(e.target.value)} required placeholder="John Doe" />
+                  <Label className="text-foreground">Full Name</Label>
+                  <Input value={fullName} onChange={e => setFullName(e.target.value)} required placeholder="John Doe" className="bg-background" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="investor@example.com" />
+                  <Label className="text-foreground">Email</Label>
+                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="investor@example.com" className="bg-background" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Password</Label>
+                  <Label className="text-foreground">Password</Label>
                   <div className="relative">
-                    <Input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required placeholder="Min 6 characters" />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    <Input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required placeholder="Min 6 characters" className="bg-background" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Referral Code (Optional)</Label>
-                  <Input value={referralCode} onChange={e => setReferralCode(e.target.value)} placeholder="Enter referral code" />
+                  <Label className="text-foreground">Referral Code <span className="text-muted-foreground font-normal">(Optional)</span></Label>
+                  <Input value={referralCode} onChange={e => setReferralCode(e.target.value)} placeholder="Enter referral code" className="bg-background" />
                 </div>
-                <Button type="submit" className="w-full bg-gradient-gold text-primary-foreground hover:opacity-90" disabled={loading}>
+                <Button type="submit" className="w-full bg-gradient-gold text-primary-foreground hover:opacity-90 font-semibold shadow-gold" disabled={loading}>
                   {loading ? 'Creating account...' : 'Create Account'}
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
+
+          {/* Trust badges */}
+          <div className="flex justify-center gap-6 mt-6 pt-5 border-t border-border">
+            {[
+              { icon: Shield, label: 'Secure' },
+              { icon: TrendingUp, label: '100% ROI' },
+              { icon: Zap, label: 'BEP20' },
+            ].map((item, i) => (
+              <div key={i} className="text-center">
+                <item.icon className="w-4 h-4 text-primary mx-auto mb-0.5" />
+                <span className="text-[10px] text-muted-foreground">{item.label}</span>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>
