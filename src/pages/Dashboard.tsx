@@ -10,13 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Copy, TrendingUp, Wallet, ArrowDownToLine, Users, DollarSign, Clock, CheckCircle, XCircle, BarChart3, Calendar, Percent } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { Copy, TrendingUp, Wallet, ArrowDownToLine, Users, DollarSign, Clock, BarChart3, Percent, UserCheck } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const CHART_COLORS = ['hsl(43, 96%, 56%)', 'hsl(142, 76%, 36%)', 'hsl(220, 70%, 50%)', 'hsl(0, 84%, 60%)'];
 
 const Dashboard = () => {
-  const { user, profile, isLoading, refreshProfile } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const navigate = useNavigate();
   const [investments, setInvestments] = useState<any[]>([]);
   const [earnings, setEarnings] = useState<any[]>([]);
@@ -65,24 +65,13 @@ const Dashboard = () => {
   const totalWithdrawn = useMemo(() => withdrawals.filter(w => w.status === 'approved').reduce((s, w) => s + Number(w.amount), 0), [withdrawals]);
   const pendingWithdrawals = useMemo(() => withdrawals.filter(w => w.status === 'pending').reduce((s, w) => s + Number(w.amount), 0), [withdrawals]);
   const availableBalance = totalEarned + totalCommissions - totalWithdrawn - pendingWithdrawals;
-
-  const currentValue = useMemo(() => {
-    return investments.filter(i => i.status === 'confirmed').reduce((sum, inv) => {
-      const dailyReturn = (Number(inv.amount) * 2) / 600;
-      const daysSinceConfirm = inv.confirmed_at ? Math.floor((Date.now() - new Date(inv.confirmed_at).getTime()) / 86400000) : 0;
-      const earned = Math.min(daysSinceConfirm * dailyReturn, Number(inv.amount) * 2);
-      return sum + earned;
-    }, 0);
-  }, [investments]);
-
-  const expectedTotal = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + Number(i.amount) * 2, 0), [investments]);
   const dailyRate = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + (Number(i.amount) * 2) / 600, 0), [investments]);
+  const expectedTotal = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + Number(i.amount) * 2, 0), [investments]);
 
   const chartData = useMemo(() => {
     const grouped: Record<string, number> = {};
     earnings.forEach(e => {
-      const date = e.earned_date;
-      grouped[date] = (grouped[date] || 0) + Number(e.amount);
+      grouped[e.earned_date] = (grouped[e.earned_date] || 0) + Number(e.amount);
     });
     let cumulative = 0;
     return Object.entries(grouped).map(([date, amount]) => {
@@ -102,8 +91,10 @@ const Dashboard = () => {
     e.preventDefault();
     if (!user) return;
     const amt = Number(depositAmount);
-    if (amt <= 0) { toast.error('Enter a valid amount'); return; }
-    const { error } = await supabase.from('investments').insert({ user_id: user.id, amount: amt, tx_hash: depositTxHash });
+    if (amt < 50) { toast.error('Minimum deposit is $50'); return; }
+    if (amt % 50 !== 0) { toast.error('Amount must be a multiple of $50 (e.g. 50, 100, 150...)'); return; }
+    if (!depositTxHash.trim()) { toast.error('Please enter BEP20 transaction hash'); return; }
+    const { error } = await supabase.from('investments').insert({ user_id: user.id, amount: amt, tx_hash: depositTxHash.trim() });
     if (error) toast.error(error.message);
     else { toast.success('Deposit submitted! Awaiting admin confirmation.'); setDepositAmount(''); setDepositTxHash(''); fetchData(); }
   };
@@ -114,15 +105,16 @@ const Dashboard = () => {
     const amt = Number(withdrawAmount);
     if (amt < 20) { toast.error('Minimum withdrawal is $20'); return; }
     if (amt > availableBalance) { toast.error('Insufficient balance'); return; }
-    const { error } = await supabase.from('withdrawals').insert({ user_id: user.id, amount: amt, wallet_address: withdrawAddress });
+    if (!withdrawAddress.trim()) { toast.error('Please enter your BEP20 wallet address'); return; }
+    const { error } = await supabase.from('withdrawals').insert({ user_id: user.id, amount: amt, wallet_address: withdrawAddress.trim() });
     if (error) toast.error(error.message);
     else { toast.success('Withdrawal request submitted!'); setWithdrawAmount(''); setWithdrawAddress(''); fetchData(); }
   };
 
-  const copyReferralLink = () => {
+  const copyReferralCode = () => {
     if (profile?.referral_code) {
-      navigator.clipboard.writeText(`${window.location.origin}/auth?tab=signup&ref=${profile.referral_code}`);
-      toast.success('Referral link copied!');
+      navigator.clipboard.writeText(profile.referral_code);
+      toast.success('Referral code copied!');
     }
   };
 
@@ -143,20 +135,23 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto px-4 pt-20 pb-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-display font-bold mb-1 text-foreground">Welcome, <span className="text-gradient-gold">{profile?.full_name || 'Investor'}</span></h1>
-          <p className="text-muted-foreground text-sm">Track your investments and earnings in real-time • USDT BEP20 Network</p>
+        {/* Header */}
+        <div className="mb-8 p-6 rounded-2xl bg-gradient-gold-subtle border border-primary/10">
+          <h1 className="text-2xl md:text-3xl font-display font-bold mb-1 text-foreground">
+            Welcome, <span className="text-gradient-gold">{profile?.full_name || 'Investor'}</span> 👋
+          </h1>
+          <p className="text-muted-foreground text-sm">Track your portfolio & earnings • USDT BEP20 Network</p>
         </div>
 
         {/* Portfolio Overview Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-8">
           {[
             { icon: DollarSign, label: 'Total Invested', value: `$${totalInvested.toFixed(2)}`, color: 'text-primary' },
-            { icon: TrendingUp, label: 'Current Value', value: `$${currentValue.toFixed(2)}`, color: 'text-emerald-500' },
-            { icon: Wallet, label: 'Available', value: `$${availableBalance.toFixed(2)}`, color: 'text-primary' },
+            { icon: TrendingUp, label: 'Total Earned', value: `$${totalEarned.toFixed(2)}`, color: 'text-emerald-500' },
+            { icon: Wallet, label: 'Available Balance', value: `$${availableBalance.toFixed(2)}`, color: 'text-primary' },
             { icon: BarChart3, label: 'Daily Earning', value: `$${dailyRate.toFixed(2)}`, color: 'text-emerald-500' },
-            { icon: ArrowDownToLine, label: 'Withdrawn', value: `$${totalWithdrawn.toFixed(2)}`, color: 'text-muted-foreground' },
-            { icon: Percent, label: 'Expected Total', value: `$${expectedTotal.toFixed(0)}`, color: 'text-primary' },
+            { icon: ArrowDownToLine, label: 'Total Withdrawn', value: `$${totalWithdrawn.toFixed(2)}`, color: 'text-muted-foreground' },
+            { icon: Percent, label: 'Expected Return', value: `$${expectedTotal.toFixed(0)}`, color: 'text-primary' },
           ].map((item, i) => (
             <Card key={i} className="border-border bg-card">
               <CardContent className="p-4">
@@ -170,20 +165,17 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Charts Row */}
+        {/* Charts */}
         <div className="grid md:grid-cols-3 gap-4 mb-8">
-          {/* Growth Chart */}
           <Card className="md:col-span-2 border-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-display text-foreground">Portfolio Growth</CardTitle>
-            </CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-display text-foreground">Portfolio Growth</CardTitle></CardHeader>
             <CardContent>
               <div className="h-56">
                 {chartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData}>
                       <defs>
-                        <linearGradient id="goldGradient" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="hsl(43, 96%, 56%)" stopOpacity={0.3} />
                           <stop offset="95%" stopColor="hsl(43, 96%, 56%)" stopOpacity={0} />
                         </linearGradient>
@@ -192,8 +184,7 @@ const Dashboard = () => {
                       <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                       <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                       <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', color: 'hsl(var(--foreground))' }} />
-                      <Area type="monotone" dataKey="total" stroke="hsl(43, 96%, 56%)" fill="url(#goldGradient)" strokeWidth={2} name="Total Earned" />
-                      <Bar dataKey="daily" fill="hsl(43, 96%, 56%)" opacity={0.3} name="Daily" />
+                      <Area type="monotone" dataKey="total" stroke="hsl(43, 96%, 56%)" fill="url(#goldGrad)" strokeWidth={2} name="Total Earned" />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
@@ -203,11 +194,8 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Pie Chart */}
           <Card className="border-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-display text-foreground">Balance Breakdown</CardTitle>
-            </CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-display text-foreground">Balance Breakdown</CardTitle></CardHeader>
             <CardContent>
               <div className="h-56">
                 {pieData.length > 0 ? (
@@ -240,7 +228,7 @@ const Dashboard = () => {
           <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
             <TabsTrigger value="deposit">Deposit</TabsTrigger>
             <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
-            <TabsTrigger value="investments">Investments</TabsTrigger>
+            <TabsTrigger value="investments">My Investments</TabsTrigger>
             <TabsTrigger value="referral">Referral</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
@@ -263,8 +251,9 @@ const Dashboard = () => {
                   )}
                   <form onSubmit={handleDeposit} className="space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-foreground">Amount (USDT)</Label>
-                      <Input type="number" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="Enter amount" min="1" required className="bg-background" />
+                      <Label className="text-foreground">Amount (USDT) — Multiples of $50 only</Label>
+                      <Input type="number" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="e.g. 50, 100, 150, 200..." min="50" step="50" required className="bg-background" />
+                      <p className="text-[10px] text-muted-foreground">Minimum: $50 • Must be multiple of $50</p>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-foreground">Transaction Hash (BEP20)</Label>
@@ -281,7 +270,7 @@ const Dashboard = () => {
                   <div className="space-y-2">
                     {investments.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-8">No deposits yet</p>
-                    ) : investments.slice(0, 5).map(inv => (
+                    ) : investments.slice(0, 8).map(inv => (
                       <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
                         <div>
                           <p className="font-semibold text-foreground">${Number(inv.amount).toFixed(2)}</p>
@@ -337,7 +326,10 @@ const Dashboard = () => {
                           <p className="text-xs text-muted-foreground">{new Date(wd.created_at).toLocaleDateString()}</p>
                           <p className="text-[10px] text-muted-foreground font-mono truncate max-w-[180px]">{wd.wallet_address}</p>
                         </div>
-                        {statusBadge(wd.status)}
+                        <div className="text-right">
+                          {statusBadge(wd.status)}
+                          {wd.rejection_reason && <p className="text-[10px] text-destructive mt-1">{wd.rejection_reason}</p>}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -349,7 +341,7 @@ const Dashboard = () => {
           {/* Investments Tab */}
           <TabsContent value="investments">
             <Card className="border-border">
-              <CardHeader><CardTitle className="text-base font-display text-foreground">All Investments</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base font-display text-foreground">My Investments</CardTitle></CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -361,7 +353,6 @@ const Dashboard = () => {
                         <th className="text-left p-3 text-muted-foreground font-medium text-xs">Days Paid</th>
                         <th className="text-left p-3 text-muted-foreground font-medium text-xs">Total Expected</th>
                         <th className="text-left p-3 text-muted-foreground font-medium text-xs">Status</th>
-                        <th className="text-left p-3 text-muted-foreground font-medium text-xs">Tx Hash</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -373,7 +364,6 @@ const Dashboard = () => {
                           <td className="p-3 text-muted-foreground">{inv.days_paid || 0} / 600</td>
                           <td className="p-3 text-foreground font-medium">${(Number(inv.amount) * 2).toFixed(2)}</td>
                           <td className="p-3">{statusBadge(inv.status)}</td>
-                          <td className="p-3 font-mono text-xs text-muted-foreground truncate max-w-[100px]">{inv.tx_hash || '-'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -388,21 +378,22 @@ const Dashboard = () => {
           <TabsContent value="referral">
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="border-border">
-                <CardHeader><CardTitle className="text-base font-display text-foreground">Your Referral Link</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base font-display text-foreground">Your Referral Program</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="p-4 rounded-xl bg-gradient-gold-subtle border border-primary/10 mb-6">
-                    <p className="text-xs text-muted-foreground mb-2 font-medium">Share this link to earn 10% instant commission:</p>
-                    <p className="text-sm font-mono break-all text-foreground mb-3">{window.location.origin}/auth?tab=signup&ref={profile?.referral_code}</p>
-                    <Button variant="outline" size="sm" className="border-primary/20" onClick={copyReferralLink}>
-                      <Copy className="w-3 h-3 mr-1" /> Copy Link
+                  <div className="p-5 rounded-xl bg-gradient-gold-subtle border border-primary/10 mb-6 text-center">
+                    <p className="text-xs text-muted-foreground mb-2 font-medium">Share this code to earn 10% instant commission:</p>
+                    <div className="text-3xl font-display font-bold text-gradient-gold tracking-widest mb-3">{profile?.referral_code || '---'}</div>
+                    <Button variant="outline" size="sm" className="border-primary/20" onClick={copyReferralCode}>
+                      <Copy className="w-3 h-3 mr-1" /> Copy Code
                     </Button>
+                    <p className="text-[10px] text-muted-foreground mt-3">New investor enters this code during signup → You get 10% of their investment instantly!</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="text-center p-4 rounded-xl bg-muted/50 border border-border">
                       <Users className="w-5 h-5 text-primary mx-auto mb-1" />
                       <div className="text-2xl font-display font-bold text-foreground">{referrals.length}</div>
-                      <div className="text-xs text-muted-foreground">Referrals</div>
+                      <div className="text-xs text-muted-foreground">Total Referrals</div>
                     </div>
                     <div className="text-center p-4 rounded-xl bg-muted/50 border border-border">
                       <DollarSign className="w-5 h-5 text-primary mx-auto mb-1" />
@@ -418,17 +409,40 @@ const Dashboard = () => {
                 <CardContent>
                   <div className="space-y-2">
                     {referrals.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8">No referrals yet. Share your link to earn!</p>
+                      <p className="text-sm text-muted-foreground text-center py-8">No referrals yet. Share your code to earn!</p>
                     ) : referrals.map((r, i) => (
                       <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
-                        <div>
-                          <p className="font-medium text-foreground">{r.full_name || 'Investor'}</p>
-                          <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <UserCheck className="w-4 h-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground text-sm">{r.full_name || 'Investor'}</p>
+                            <p className="text-xs text-muted-foreground">{r.email}</p>
+                          </div>
                         </div>
-                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Active</Badge>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
+                          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px]">Active</Badge>
+                        </div>
                       </div>
                     ))}
                   </div>
+
+                  {/* Commission History */}
+                  {commissions.length > 0 && (
+                    <div className="mt-6 pt-4 border-t border-border">
+                      <h4 className="text-sm font-display font-semibold text-foreground mb-3">Commission History</h4>
+                      <div className="space-y-2">
+                        {commissions.slice(0, 10).map((c, i) => (
+                          <div key={i} className="flex items-center justify-between p-2 rounded-lg text-sm">
+                            <span className="text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString()}</span>
+                            <span className="text-emerald-500 font-semibold">+${Number(c.amount).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
