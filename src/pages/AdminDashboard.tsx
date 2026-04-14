@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import {
   Users, DollarSign, TrendingUp, AlertTriangle, CheckCircle, XCircle,
   Ban, Unlock, Eye, ArrowLeft, Shield, Settings, BarChart3, UserCheck, Link2,
-  Bell, MessageSquare, Upload, Image as ImageIcon, Send, Key
+  Bell, MessageSquare, Upload, Image as ImageIcon, Send, Key, Copy, Wallet, PauseCircle, PlayCircle
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -33,6 +33,25 @@ const REJECTION_REASONS = [
   'Other',
 ];
 
+const WITHDRAWAL_HOLD_REASONS = [
+  'Under review — verification pending',
+  'Suspicious withdrawal pattern',
+  'KYC verification required',
+  'Account audit in progress',
+  'Exceeds daily limit',
+  'Other',
+];
+
+const CopyBtn = ({ text }: { text: string }) => (
+  <button
+    onClick={() => { navigator.clipboard.writeText(text); toast.success('Copied!'); }}
+    className="inline-flex items-center justify-center p-1 rounded hover:bg-muted/80 transition-colors shrink-0"
+    title="Copy"
+  >
+    <Copy className="w-3 h-3 text-muted-foreground" />
+  </button>
+);
+
 const AdminDashboard = () => {
   const { user, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -51,31 +70,30 @@ const AdminDashboard = () => {
   const [selectedUserReferrals, setSelectedUserReferrals] = useState<any[]>([]);
   const [filterTab, setFilterTab] = useState('all');
 
-  // Notification states
   const [notifTitle, setNotifTitle] = useState('');
   const [notifMessage, setNotifMessage] = useState('');
   const [notifTarget, setNotifTarget] = useState('all');
 
-  // Rejection dialog
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectType, setRejectType] = useState<'deposit' | 'withdrawal'>('deposit');
   const [rejectReason, setRejectReason] = useState('');
   const [customRejectReason, setCustomRejectReason] = useState('');
 
-  // QR upload
   const [qrUploading, setQrUploading] = useState(false);
 
-  // Ticket reply
   const [replyingTicketId, setReplyingTicketId] = useState<string | null>(null);
   const [ticketReply, setTicketReply] = useState('');
 
-  // User password change
   const [changingPasswordUserId, setChangingPasswordUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
 
-  // User wallet change
   const [changingWalletUserId, setChangingWalletUserId] = useState<string | null>(null);
   const [newWallet, setNewWallet] = useState('');
+
+  // Hold withdrawal state
+  const [holdingWdId, setHoldingWdId] = useState<string | null>(null);
+  const [holdReason, setHoldReason] = useState('');
+  const [customHoldReason, setCustomHoldReason] = useState('');
 
   useEffect(() => {
     if (!isLoading && (!user || !isAdmin)) navigate('/');
@@ -119,6 +137,15 @@ const AdminDashboard = () => {
   const pendingInvestments = useMemo(() => allInvestments.filter(i => i.status === 'pending'), [allInvestments]);
   const pendingWithdrawalsList = useMemo(() => allWithdrawals.filter(w => w.status === 'pending'), [allWithdrawals]);
 
+  // Investment count by filter
+  const filteredInvestments = useMemo(() => allInvestments.filter(i => filterTab === 'all' || i.status === filterTab), [allInvestments, filterTab]);
+  const investmentCountByStatus = useMemo(() => ({
+    all: allInvestments.length,
+    pending: allInvestments.filter(i => i.status === 'pending').length,
+    confirmed: allInvestments.filter(i => i.status === 'confirmed').length,
+    rejected: allInvestments.filter(i => i.status === 'rejected').length,
+  }), [allInvestments]);
+
   const investmentByMonth = useMemo(() => {
     const months: Record<string, number> = {};
     allInvestments.filter(i => i.status === 'confirmed').forEach(inv => {
@@ -157,6 +184,13 @@ const AdminDashboard = () => {
         amount: commission, earned_date: new Date().toISOString().split('T')[0]
       });
     }
+
+    await supabase.from('notifications').insert({
+      user_id: inv.user_id,
+      title: 'Deposit Confirmed',
+      message: `Your deposit of $${Number(inv.amount).toFixed(2)} has been confirmed. Daily earnings will start shortly.`,
+    });
+
     toast.success('Investment confirmed!');
     fetchAll();
   };
@@ -176,12 +210,10 @@ const AdminDashboard = () => {
     if (rejectType === 'deposit') {
       const { error } = await supabase.from('investments').update({ status: 'rejected' as any }).eq('id', rejectingId);
       if (error) { toast.error(error.message); return; }
-      // Send notification to user
       const inv = allInvestments.find(i => i.id === rejectingId);
       if (inv) {
         await supabase.from('notifications').insert({
-          user_id: inv.user_id,
-          title: 'Deposit Rejected',
+          user_id: inv.user_id, title: 'Deposit Rejected',
           message: `Your deposit of $${Number(inv.amount).toFixed(2)} was rejected. Reason: ${reason}`,
         });
       }
@@ -193,8 +225,7 @@ const AdminDashboard = () => {
       const wd = allWithdrawals.find(w => w.id === rejectingId);
       if (wd) {
         await supabase.from('notifications').insert({
-          user_id: wd.user_id,
-          title: 'Withdrawal Rejected',
+          user_id: wd.user_id, title: 'Withdrawal Rejected',
           message: `Your withdrawal of $${Number(wd.amount).toFixed(2)} was rejected. Reason: ${reason}`,
         });
       }
@@ -207,15 +238,14 @@ const AdminDashboard = () => {
   const approveWithdrawal = async (id: string) => {
     if (!user) return;
     const { error } = await supabase.from('withdrawals').update({
-      status: 'approved' as any, processed_by: user.id, processed_at: new Date().toISOString()
+      status: 'approved' as any, processed_by: user.id, processed_at: new Date().toISOString(), rejection_reason: null
     }).eq('id', id);
     if (error) toast.error(error.message);
     else {
       const wd = allWithdrawals.find(w => w.id === id);
       if (wd) {
         await supabase.from('notifications').insert({
-          user_id: wd.user_id,
-          title: 'Withdrawal Approved',
+          user_id: wd.user_id, title: 'Withdrawal Approved',
           message: `Your withdrawal of $${Number(wd.amount).toFixed(2)} has been approved and will be sent to your wallet.`,
         });
       }
@@ -224,9 +254,48 @@ const AdminDashboard = () => {
     }
   };
 
+  // Hold withdrawal with reason
+  const handleHoldWithdrawal = async () => {
+    if (!holdingWdId) return;
+    const reason = holdReason === 'Other' ? customHoldReason : holdReason;
+    if (!reason) { toast.error('Select a hold reason'); return; }
+    const { error } = await supabase.from('withdrawals').update({
+      rejection_reason: `ON HOLD: ${reason}`
+    }).eq('id', holdingWdId);
+    if (error) toast.error(error.message);
+    else {
+      const wd = allWithdrawals.find(w => w.id === holdingWdId);
+      if (wd) {
+        await supabase.from('notifications').insert({
+          user_id: wd.user_id, title: 'Withdrawal On Hold',
+          message: `Your withdrawal of $${Number(wd.amount).toFixed(2)} is on hold. Reason: ${reason}`,
+        });
+      }
+      toast.success('Withdrawal put on hold');
+      setHoldingWdId(null); setHoldReason(''); setCustomHoldReason('');
+      fetchAll();
+    }
+  };
+
   const toggleBlockUser = async (profileId: string, currentBlocked: boolean) => {
     const { error } = await supabase.from('profiles').update({ is_blocked: !currentBlocked }).eq('id', profileId);
     if (error) toast.error(error.message); else { toast.success(currentBlocked ? 'User unblocked' : 'User blocked'); fetchAll(); }
+  };
+
+  const handleChangePassword = async () => {
+    if (!changingPasswordUserId || !newPassword.trim()) { toast.error('Enter new password'); return; }
+    if (newPassword.length < 6) { toast.error('Password must be at least 6 characters'); return; }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await supabase.functions.invoke('admin-update-user', {
+        body: { action: 'change_password', user_id: changingPasswordUserId, password: newPassword },
+      });
+      if (response.error) throw response.error;
+      toast.success('Password changed successfully');
+      setChangingPasswordUserId(null); setNewPassword('');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to change password');
+    }
   };
 
   const handleChangeWallet = async () => {
@@ -240,8 +309,7 @@ const AdminDashboard = () => {
     if (!notifTitle.trim() || !notifMessage.trim()) { toast.error('Fill all fields'); return; }
     const { error } = await supabase.from('notifications').insert({
       user_id: notifTarget === 'all' ? null : notifTarget,
-      title: notifTitle.trim(),
-      message: notifMessage.trim(),
+      title: notifTitle.trim(), message: notifMessage.trim(),
     });
     if (error) toast.error(error.message);
     else { toast.success('Notification sent!'); setNotifTitle(''); setNotifMessage(''); setNotifTarget('all'); }
@@ -257,14 +325,12 @@ const AdminDashboard = () => {
       const ticket = allTickets.find(t => t.id === replyingTicketId);
       if (ticket) {
         await supabase.from('notifications').insert({
-          user_id: ticket.user_id,
-          title: 'Support Ticket Reply',
-          message: `Your ticket "${ticket.subject}" has been responded to. Check your support tickets for the reply.`,
+          user_id: ticket.user_id, title: 'Support Ticket Reply',
+          message: `Your ticket "${ticket.subject}" has been responded to.`,
         });
       }
       toast.success('Reply sent!');
-      setReplyingTicketId(null);
-      setTicketReply('');
+      setReplyingTicketId(null); setTicketReply('');
       fetchAll();
     }
   };
@@ -273,23 +339,41 @@ const AdminDashboard = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     setQrUploading(true);
-    const ext = file.name.split('.').pop();
-    const path = `qr-code.${ext}`;
-    const { error: uploadError } = await supabase.storage.from('site-assets').upload(path, file, { upsert: true });
-    if (uploadError) { toast.error(uploadError.message); setQrUploading(false); return; }
-    const { data: urlData } = supabase.storage.from('site-assets').getPublicUrl(path);
-    if (siteSettings) {
-      await supabase.from('site_settings').update({ qr_code_url: urlData.publicUrl }).eq('id', siteSettings.id);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `qr-code-${Date.now()}.${ext}`;
+
+      // Delete old file if exists
+      const { data: oldFiles } = await supabase.storage.from('site-assets').list('', { search: 'qr-code' });
+      if (oldFiles && oldFiles.length > 0) {
+        await supabase.storage.from('site-assets').remove(oldFiles.map(f => f.name));
+      }
+
+      const { error: uploadError } = await supabase.storage.from('site-assets').upload(path, file, { upsert: true, cacheControl: '0' });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('site-assets').getPublicUrl(path);
+
+      if (siteSettings) {
+        await supabase.from('site_settings').update({ qr_code_url: urlData.publicUrl }).eq('id', siteSettings.id);
+      } else {
+        await supabase.from('site_settings').insert({ usdt_address: usdtAddress, qr_code_url: urlData.publicUrl });
+      }
+      toast.success('QR code uploaded!');
+      fetchAll();
+    } catch (err: any) {
+      toast.error(err.message || 'Upload failed');
     }
-    toast.success('QR code uploaded!');
     setQrUploading(false);
-    fetchAll();
   };
 
   const updateSettings = async () => {
-    if (!siteSettings) return;
-    const { error } = await supabase.from('site_settings').update({ usdt_address: usdtAddress }).eq('id', siteSettings.id);
-    if (error) toast.error(error.message); else toast.success('Settings updated!');
+    if (!siteSettings) {
+      const { error } = await supabase.from('site_settings').insert({ usdt_address: usdtAddress });
+      if (error) toast.error(error.message); else toast.success('Settings saved!');
+    } else {
+      const { error } = await supabase.from('site_settings').update({ usdt_address: usdtAddress }).eq('id', siteSettings.id);
+      if (error) toast.error(error.message); else toast.success('Settings updated!');
+    }
   };
 
   const viewUserPortfolio = async (u: any) => {
@@ -310,13 +394,13 @@ const AdminDashboard = () => {
 
   const statusBadge = (status: string) => {
     const colors: Record<string, string> = {
-      pending: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
-      confirmed: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-      approved: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-      rejected: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
-      completed: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-      open: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-      resolved: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+      pending: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
+      confirmed: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+      approved: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+      rejected: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30',
+      completed: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30',
+      open: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
+      resolved: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
       closed: 'bg-muted text-muted-foreground border-border',
     };
     return <Badge variant="outline" className={colors[status] || 'border-border text-muted-foreground'}>{status}</Badge>;
@@ -334,7 +418,7 @@ const AdminDashboard = () => {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label className="text-foreground">Select Reason</Label>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-60 overflow-y-auto">
               {REJECTION_REASONS.map(r => (
                 <label key={r} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 cursor-pointer">
                   <input type="radio" name="reject-reason" value={r} checked={rejectReason === r} onChange={() => setRejectReason(r)} className="accent-primary" />
@@ -350,8 +434,42 @@ const AdminDashboard = () => {
             </div>
           )}
           <div className="flex gap-2">
-            <Button variant="destructive" className="flex-1" onClick={handleReject}>Reject</Button>
-            <Button variant="outline" className="flex-1" onClick={() => setRejectingId(null)}>Cancel</Button>
+            <Button variant="destructive" className="flex-1 h-10" onClick={handleReject}>Reject</Button>
+            <Button variant="outline" className="flex-1 h-10" onClick={() => setRejectingId(null)}>Cancel</Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  // HOLD WITHDRAWAL DIALOG
+  const holdDialog = holdingWdId && (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md border-border bg-card">
+        <CardHeader>
+          <CardTitle className="text-base font-display text-foreground">Hold Withdrawal</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-foreground">Hold Reason</Label>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {WITHDRAWAL_HOLD_REASONS.map(r => (
+                <label key={r} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 cursor-pointer">
+                  <input type="radio" name="hold-reason" value={r} checked={holdReason === r} onChange={() => setHoldReason(r)} className="accent-primary" />
+                  <span className="text-sm text-foreground">{r}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          {holdReason === 'Other' && (
+            <div className="space-y-2">
+              <Label className="text-foreground">Custom Reason</Label>
+              <Input value={customHoldReason} onChange={e => setCustomHoldReason(e.target.value)} placeholder="Enter reason..." className="bg-background" />
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button className="flex-1 h-10 bg-amber-600 hover:bg-amber-700 text-white" onClick={handleHoldWithdrawal}>Hold</Button>
+            <Button variant="outline" className="flex-1 h-10" onClick={() => { setHoldingWdId(null); setHoldReason(''); setCustomHoldReason(''); }}>Cancel</Button>
           </div>
         </CardContent>
       </Card>
@@ -373,61 +491,81 @@ const AdminDashboard = () => {
       <div className="min-h-screen bg-background">
         <Navbar />
         {rejectionDialog}
-        <div className="container mx-auto px-4 pt-20 pb-12">
+        {holdDialog}
+        <div className="container mx-auto px-3 sm:px-4 pt-20 pb-12">
           <Button variant="ghost" className="mb-4 text-muted-foreground" onClick={() => setSelectedUser(null)}>
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Admin
           </Button>
 
-          <div className="mb-6 p-6 rounded-2xl border border-primary/20 bg-card">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="mb-6 p-4 sm:p-6 rounded-2xl border border-primary/20 bg-card">
+            <div className="flex flex-col gap-4">
               <div>
-                <h2 className="text-2xl font-display font-bold text-foreground">{selectedUser.full_name || 'Unknown'}</h2>
+                <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground">{selectedUser.full_name || 'Unknown'}</h2>
                 <p className="text-muted-foreground text-sm">{selectedUser.email}</p>
-                <div className="flex items-center gap-3 mt-2 flex-wrap">
-                  <Badge variant="outline" className={selectedUser.is_blocked ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'}>
+                <div className="flex items-center gap-2 sm:gap-3 mt-2 flex-wrap">
+                  <Badge variant="outline" className={selectedUser.is_blocked ? 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'}>
                     {selectedUser.is_blocked ? 'Blocked' : 'Active'}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">Code: <strong className="text-primary">{selectedUser.referral_code}</strong></span>
+                  <span className="text-xs text-muted-foreground">Code: <strong className="text-amber-600 dark:text-amber-400">{selectedUser.referral_code}</strong> <CopyBtn text={selectedUser.referral_code || ''} /></span>
                   {referrerProfile && <span className="text-xs text-muted-foreground">Referred by: <strong className="text-foreground">{referrerProfile.full_name}</strong></span>}
-                  <span className="text-xs text-muted-foreground">Wallet: <span className="font-mono">{selectedUser.wallet_address || 'Not set'}</span></span>
                   <span className="text-xs text-muted-foreground">Joined: {new Date(selectedUser.created_at).toLocaleDateString()}</span>
-                  <span className="text-xs text-muted-foreground">Capping: <strong className="text-primary">{uCapping}%</strong></span>
+                  <span className="text-xs text-muted-foreground">Capping: <strong className="text-amber-600 dark:text-amber-400">{uCapping}%</strong></span>
+                </div>
+                <div className="flex items-center gap-1 mt-1">
+                  <span className="text-xs text-muted-foreground">Wallet: <span className="font-mono text-[10px]">{selectedUser.wallet_address || 'Not set'}</span></span>
+                  {selectedUser.wallet_address && <CopyBtn text={selectedUser.wallet_address} />}
                 </div>
               </div>
               <div className="flex gap-2 flex-wrap">
-                <Button size="sm" variant="outline" onClick={() => toggleBlockUser(selectedUser.id, selectedUser.is_blocked)}>
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => toggleBlockUser(selectedUser.id, selectedUser.is_blocked)}>
                   {selectedUser.is_blocked ? <><Unlock className="w-3 h-3 mr-1" /> Unblock</> : <><Ban className="w-3 h-3 mr-1" /> Block</>}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => { setChangingWalletUserId(selectedUser.user_id); setNewWallet(selectedUser.wallet_address || ''); }}>
-                  <Settings className="w-3 h-3 mr-1" /> Change Wallet
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { setChangingWalletUserId(selectedUser.user_id); setNewWallet(selectedUser.wallet_address || ''); }}>
+                  <Wallet className="w-3 h-3 mr-1" /> Wallet
+                </Button>
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { setChangingPasswordUserId(selectedUser.user_id); setNewPassword(''); }}>
+                  <Key className="w-3 h-3 mr-1" /> Password
                 </Button>
               </div>
             </div>
 
+            {/* Change password inline */}
+            {changingPasswordUserId === selectedUser.user_id && (
+              <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border">
+                <Label className="text-foreground text-sm">New Password</Label>
+                <div className="flex gap-2 mt-2">
+                  <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min 6 characters" className="bg-background text-sm" />
+                  <Button size="sm" className="bg-gradient-gold text-primary-foreground h-9" onClick={handleChangePassword}>Save</Button>
+                  <Button size="sm" variant="outline" className="h-9" onClick={() => setChangingPasswordUserId(null)}>Cancel</Button>
+                </div>
+              </div>
+            )}
+
+            {/* Change wallet inline */}
             {changingWalletUserId === selectedUser.user_id && (
               <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border">
                 <Label className="text-foreground text-sm">New Wallet Address</Label>
                 <div className="flex gap-2 mt-2">
                   <Input value={newWallet} onChange={e => setNewWallet(e.target.value)} placeholder="BEP20 wallet address" className="bg-background font-mono text-sm" />
-                  <Button size="sm" className="bg-gradient-gold text-primary-foreground" onClick={handleChangeWallet}>Save</Button>
-                  <Button size="sm" variant="outline" onClick={() => setChangingWalletUserId(null)}>Cancel</Button>
+                  <Button size="sm" className="bg-gradient-gold text-primary-foreground h-9" onClick={handleChangeWallet}>Save</Button>
+                  <Button size="sm" variant="outline" className="h-9" onClick={() => setChangingWalletUserId(null)}>Cancel</Button>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 sm:gap-3 mb-6">
             {[
-              { label: 'Invested', value: `$${uTotalInvested.toFixed(2)}`, color: 'text-primary' },
-              { label: 'Earned', value: `$${uTotalEarned.toFixed(2)}`, color: 'text-emerald-500' },
-              { label: 'Commissions', value: `$${uTotalCommissions.toFixed(2)}`, color: 'text-primary' },
+              { label: 'Invested', value: `$${uTotalInvested.toFixed(2)}`, color: 'text-amber-600 dark:text-amber-400' },
+              { label: 'Earned', value: `$${uTotalEarned.toFixed(2)}`, color: 'text-emerald-600 dark:text-emerald-400' },
+              { label: 'Commissions', value: `$${uTotalCommissions.toFixed(2)}`, color: 'text-amber-600 dark:text-amber-400' },
               { label: 'Withdrawn', value: `$${uTotalWithdrawn.toFixed(2)}`, color: 'text-muted-foreground' },
-              { label: 'Available', value: `$${uAvailable.toFixed(2)}`, color: 'text-primary' },
-              { label: 'Capping', value: `${uCapping}%`, color: 'text-primary' },
+              { label: 'Available', value: `$${uAvailable.toFixed(2)}`, color: 'text-amber-600 dark:text-amber-400' },
+              { label: 'Capping', value: `${uCapping}%`, color: 'text-amber-600 dark:text-amber-400' },
             ].map((s, i) => (
-              <Card key={i} className="border-border"><CardContent className="p-4">
-                <p className="text-[11px] text-muted-foreground font-medium">{s.label}</p>
-                <p className={`text-lg font-display font-bold ${s.color}`}>{s.value}</p>
+              <Card key={i} className="border-border"><CardContent className="p-3 sm:p-4">
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">{s.label}</p>
+                <p className={`text-sm sm:text-lg font-display font-bold ${s.color}`}>{s.value}</p>
               </CardContent></Card>
             ))}
           </div>
@@ -444,15 +582,31 @@ const AdminDashboard = () => {
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Days</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">TX</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Status</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs">Actions</th>
                 </tr></thead><tbody>
                   {selectedUserInvestments.map(inv => (
                     <tr key={inv.id} className="border-b border-border/50">
                       <td className="p-2 text-foreground text-xs">{new Date(inv.created_at).toLocaleDateString()}</td>
                       <td className="p-2 font-semibold text-foreground">${Number(inv.amount).toFixed(2)}</td>
-                      <td className="p-2 text-primary text-xs">${((Number(inv.amount) * 2) / 600).toFixed(4)}</td>
+                      <td className="p-2 text-amber-600 dark:text-amber-400 text-xs">${((Number(inv.amount) * 2) / 600).toFixed(4)}</td>
                       <td className="p-2 text-muted-foreground text-xs">{inv.days_paid || 0}/600</td>
-                      <td className="p-2 font-mono text-xs text-muted-foreground truncate max-w-[100px]">{inv.tx_hash || '-'}</td>
+                      <td className="p-2">
+                        {inv.tx_hash ? (
+                          <div className="flex items-center gap-1">
+                            <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[60px]">{inv.tx_hash}</span>
+                            <CopyBtn text={inv.tx_hash} />
+                          </div>
+                        ) : '-'}
+                      </td>
                       <td className="p-2">{statusBadge(inv.status)}</td>
+                      <td className="p-2">
+                        {inv.status === 'pending' && (
+                          <div className="flex gap-1">
+                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-[10px] px-2" onClick={() => confirmInvestment(inv)}>✓</Button>
+                            <Button size="sm" variant="destructive" className="h-7 text-[10px] px-2" onClick={() => openRejectDialog(inv.id, 'deposit')}>✗</Button>
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody></table>
@@ -469,14 +623,29 @@ const AdminDashboard = () => {
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Wallet</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Status</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Reason</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs">Actions</th>
                 </tr></thead><tbody>
                   {selectedUserWithdrawals.map(wd => (
                     <tr key={wd.id} className="border-b border-border/50">
                       <td className="p-2 text-foreground text-xs">{new Date(wd.created_at).toLocaleDateString()}</td>
                       <td className="p-2 font-semibold text-foreground">${Number(wd.amount).toFixed(2)}</td>
-                      <td className="p-2 font-mono text-xs text-muted-foreground truncate max-w-[150px]">{wd.wallet_address}</td>
+                      <td className="p-2">
+                        <div className="flex items-center gap-1">
+                          <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[80px]">{wd.wallet_address}</span>
+                          <CopyBtn text={wd.wallet_address} />
+                        </div>
+                      </td>
                       <td className="p-2">{statusBadge(wd.status)}</td>
-                      <td className="p-2 text-xs text-destructive">{wd.rejection_reason || '-'}</td>
+                      <td className="p-2 text-xs text-destructive max-w-[100px] truncate">{wd.rejection_reason || '-'}</td>
+                      <td className="p-2">
+                        {wd.status === 'pending' && (
+                          <div className="flex gap-1 flex-wrap">
+                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-[10px] px-2" onClick={() => approveWithdrawal(wd.id)}>✓</Button>
+                            <Button size="sm" variant="destructive" className="h-7 text-[10px] px-2" onClick={() => openRejectDialog(wd.id, 'withdrawal')}>✗</Button>
+                            <Button size="sm" variant="outline" className="h-7 text-[10px] px-2 border-amber-500/30 text-amber-600 dark:text-amber-400" onClick={() => setHoldingWdId(wd.id)}>⏸</Button>
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody></table>
@@ -509,34 +678,35 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       {rejectionDialog}
-      <div className="container mx-auto px-4 pt-20 pb-12">
-        <div className="mb-8 p-6 rounded-2xl bg-[#070a0f] border border-white/10">
+      {holdDialog}
+      <div className="container mx-auto px-3 sm:px-4 pt-20 pb-12">
+        <div className="mb-8 p-4 sm:p-6 rounded-2xl bg-[#070a0f] border border-white/10">
           <div className="flex items-center gap-3 mb-2">
-            <Shield className="w-7 h-7 text-[hsl(43,96%,56%)]" />
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-white">
+            <Shield className="w-6 sm:w-7 h-6 sm:h-7 text-[hsl(43,96%,56%)]" />
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-white">
               Admin <span className="text-gradient-gold">Control Panel</span>
             </h1>
           </div>
-          <p className="text-white/50 text-sm">Full system management • Investments • Withdrawals • Users • Support</p>
+          <p className="text-white/50 text-xs sm:text-sm">Full system management • Investments • Withdrawals • Users • Support</p>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-7 gap-3 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-7 gap-2 sm:gap-3 mb-8">
           {[
-            { icon: DollarSign, label: 'Total Invested', value: `$${stats.totalInvested.toFixed(0)}`, color: 'text-primary' },
+            { icon: DollarSign, label: 'Total Invested', value: `$${stats.totalInvested.toFixed(0)}`, color: 'text-amber-600 dark:text-amber-400' },
             { icon: Users, label: 'Total Users', value: users.length, color: 'text-foreground' },
-            { icon: UserCheck, label: 'Active Users', value: stats.activeUsers, color: 'text-emerald-500' },
-            { icon: TrendingUp, label: 'Total Payouts', value: `$${stats.totalPayouts.toFixed(0)}`, color: 'text-emerald-500' },
-            { icon: AlertTriangle, label: 'Pending Deposits', value: stats.pendingDeposits, color: 'text-amber-500' },
-            { icon: Link2, label: 'Commissions', value: `$${stats.totalCommissions.toFixed(0)}`, color: 'text-primary' },
-            { icon: MessageSquare, label: 'Open Tickets', value: stats.openTickets, color: 'text-amber-500' },
+            { icon: UserCheck, label: 'Active Users', value: stats.activeUsers, color: 'text-emerald-600 dark:text-emerald-400' },
+            { icon: TrendingUp, label: 'Total Payouts', value: `$${stats.totalPayouts.toFixed(0)}`, color: 'text-emerald-600 dark:text-emerald-400' },
+            { icon: AlertTriangle, label: 'Pending Deposits', value: stats.pendingDeposits, color: 'text-amber-600 dark:text-amber-400' },
+            { icon: Link2, label: 'Commissions', value: `$${stats.totalCommissions.toFixed(0)}`, color: 'text-amber-600 dark:text-amber-400' },
+            { icon: MessageSquare, label: 'Open Tickets', value: stats.openTickets, color: 'text-amber-600 dark:text-amber-400' },
           ].map((item, i) => (
-            <Card key={i} className="border-border bg-card"><CardContent className="p-4">
+            <Card key={i} className="border-border bg-card"><CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <item.icon className={`w-3.5 h-3.5 ${item.color}`} />
-                <span className="text-[11px] text-muted-foreground font-medium">{item.label}</span>
+                <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">{item.label}</span>
               </div>
-              <div className={`text-xl font-display font-bold ${item.color}`}>{item.value}</div>
+              <div className={`text-lg sm:text-xl font-display font-bold ${item.color}`}>{item.value}</div>
             </CardContent></Card>
           ))}
         </div>
@@ -586,17 +756,19 @@ const AdminDashboard = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="pending-deposits" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-9 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="pending-deposits" className="text-xs">Deposits {pendingInvestments.length > 0 && <Badge className="ml-1 bg-amber-500 text-white text-[10px] px-1.5 py-0">{pendingInvestments.length}</Badge>}</TabsTrigger>
-            <TabsTrigger value="pending-withdrawals" className="text-xs">Withdrawals {pendingWithdrawalsList.length > 0 && <Badge className="ml-1 bg-amber-500 text-white text-[10px] px-1.5 py-0">{pendingWithdrawalsList.length}</Badge>}</TabsTrigger>
-            <TabsTrigger value="users" className="text-xs">Users</TabsTrigger>
-            <TabsTrigger value="all-investments" className="text-xs">All Investments</TabsTrigger>
-            <TabsTrigger value="all-withdrawals" className="text-xs">All Withdrawals</TabsTrigger>
-            <TabsTrigger value="referrals" className="text-xs">Referrals</TabsTrigger>
-            <TabsTrigger value="notifications" className="text-xs">Notifications</TabsTrigger>
-            <TabsTrigger value="support" className="text-xs">Support {stats.openTickets > 0 && <Badge className="ml-1 bg-amber-500 text-white text-[10px] px-1.5 py-0">{stats.openTickets}</Badge>}</TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs">Settings</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-3 px-3">
+            <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-3 md:grid-cols-9">
+              <TabsTrigger value="pending-deposits" className="text-xs whitespace-nowrap">Deposits {pendingInvestments.length > 0 && <Badge className="ml-1 bg-amber-500 text-white text-[10px] px-1.5 py-0">{pendingInvestments.length}</Badge>}</TabsTrigger>
+              <TabsTrigger value="pending-withdrawals" className="text-xs whitespace-nowrap">Withdrawals {pendingWithdrawalsList.length > 0 && <Badge className="ml-1 bg-amber-500 text-white text-[10px] px-1.5 py-0">{pendingWithdrawalsList.length}</Badge>}</TabsTrigger>
+              <TabsTrigger value="users" className="text-xs whitespace-nowrap">Users</TabsTrigger>
+              <TabsTrigger value="all-investments" className="text-xs whitespace-nowrap">All Investments</TabsTrigger>
+              <TabsTrigger value="all-withdrawals" className="text-xs whitespace-nowrap">All Withdrawals</TabsTrigger>
+              <TabsTrigger value="referrals" className="text-xs whitespace-nowrap">Referrals</TabsTrigger>
+              <TabsTrigger value="notifications" className="text-xs whitespace-nowrap">Notifications</TabsTrigger>
+              <TabsTrigger value="support" className="text-xs whitespace-nowrap">Support {stats.openTickets > 0 && <Badge className="ml-1 bg-amber-500 text-white text-[10px] px-1.5 py-0">{stats.openTickets}</Badge>}</TabsTrigger>
+              <TabsTrigger value="settings" className="text-xs whitespace-nowrap">Settings</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Pending Deposits */}
           <TabsContent value="pending-deposits">
@@ -606,17 +778,20 @@ const AdminDashboard = () => {
                 {pendingInvestments.length === 0 ? <p className="text-center text-muted-foreground py-8 text-sm">✅ No pending deposits</p> : (
                   <div className="space-y-3">
                     {pendingInvestments.map(inv => (
-                      <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 gap-3">
-                        <div>
-                          <p className="font-semibold text-foreground">{getUserName(inv.user_id)} — <span className="text-primary font-bold">${Number(inv.amount).toFixed(2)}</span></p>
-                          <p className="text-xs text-muted-foreground">TX: <span className="font-mono">{inv.tx_hash || 'N/A'}</span></p>
+                      <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 gap-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-foreground text-sm">{getUserName(inv.user_id)} — <span className="text-amber-600 dark:text-amber-400 font-bold">${Number(inv.amount).toFixed(2)}</span></p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <p className="text-xs text-muted-foreground">TX: <span className="font-mono text-[10px]">{inv.tx_hash ? inv.tx_hash.slice(0, 20) + '...' : 'N/A'}</span></p>
+                            {inv.tx_hash && <CopyBtn text={inv.tx_hash} />}
+                          </div>
                           <p className="text-xs text-muted-foreground">{getUserEmail(inv.user_id)} • {new Date(inv.created_at).toLocaleString()}</p>
                         </div>
                         <div className="flex gap-2 shrink-0">
-                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium" onClick={() => confirmInvestment(inv)}>
+                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium h-9 text-xs px-3" onClick={() => confirmInvestment(inv)}>
                             <CheckCircle className="w-3 h-3 mr-1" /> Confirm
                           </Button>
-                          <Button size="sm" variant="destructive" onClick={() => openRejectDialog(inv.id, 'deposit')}>
+                          <Button size="sm" variant="destructive" className="h-9 text-xs px-3" onClick={() => openRejectDialog(inv.id, 'deposit')}>
                             <XCircle className="w-3 h-3 mr-1" /> Reject
                           </Button>
                         </div>
@@ -636,18 +811,25 @@ const AdminDashboard = () => {
                 {pendingWithdrawalsList.length === 0 ? <p className="text-center text-muted-foreground py-8 text-sm">✅ No pending withdrawals</p> : (
                   <div className="space-y-3">
                     {pendingWithdrawalsList.map(wd => (
-                      <div key={wd.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 gap-3">
-                        <div>
-                          <p className="font-semibold text-foreground">{getUserName(wd.user_id)} — <span className="text-primary font-bold">${Number(wd.amount).toFixed(2)}</span></p>
-                          <p className="text-xs text-muted-foreground">To: <span className="font-mono">{wd.wallet_address}</span></p>
+                      <div key={wd.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 gap-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-foreground text-sm">{getUserName(wd.user_id)} — <span className="text-amber-600 dark:text-amber-400 font-bold">${Number(wd.amount).toFixed(2)}</span></p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <p className="text-xs text-muted-foreground">To: <span className="font-mono text-[10px]">{wd.wallet_address.slice(0, 20)}...</span></p>
+                            <CopyBtn text={wd.wallet_address} />
+                          </div>
                           <p className="text-xs text-muted-foreground">{getUserEmail(wd.user_id)} • {new Date(wd.created_at).toLocaleString()}</p>
+                          {wd.rejection_reason && <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">⚠️ {wd.rejection_reason}</p>}
                         </div>
-                        <div className="flex gap-2 shrink-0">
-                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium" onClick={() => approveWithdrawal(wd.id)}>
+                        <div className="flex gap-2 shrink-0 flex-wrap">
+                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium h-9 text-xs px-3" onClick={() => approveWithdrawal(wd.id)}>
                             <CheckCircle className="w-3 h-3 mr-1" /> Approve
                           </Button>
-                          <Button size="sm" variant="destructive" onClick={() => openRejectDialog(wd.id, 'withdrawal')}>
+                          <Button size="sm" variant="destructive" className="h-9 text-xs px-3" onClick={() => openRejectDialog(wd.id, 'withdrawal')}>
                             <XCircle className="w-3 h-3 mr-1" /> Reject
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-9 text-xs px-3 border-amber-500/30 text-amber-700 dark:text-amber-400" onClick={() => setHoldingWdId(wd.id)}>
+                            <PauseCircle className="w-3 h-3 mr-1" /> Hold
                           </Button>
                         </div>
                       </div>
@@ -664,36 +846,48 @@ const AdminDashboard = () => {
               <CardHeader><CardTitle className="text-base font-display text-foreground">All Users ({users.length})</CardTitle></CardHeader>
               <CardContent><div className="overflow-x-auto">
                 <table className="w-full text-sm"><thead><tr className="border-b border-border bg-muted/30">
-                  <th className="text-left p-3 text-muted-foreground font-medium text-xs">Name</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium text-xs">Email</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium text-xs">Code</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium text-xs">Referred By</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium text-xs">Wallet</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium text-xs">Status</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium text-xs">Joined</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium text-xs">Actions</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs">Name</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs">Email</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs">Code</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs hidden sm:table-cell">Referred By</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs hidden md:table-cell">Wallet</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs">Status</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs hidden sm:table-cell">Joined</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs">Actions</th>
                 </tr></thead><tbody>
                   {users.map(u => {
                     const referrer = u.referred_by ? users.find(r => r.user_id === u.referred_by) : null;
                     return (
                       <tr key={u.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                        <td className="p-3 font-medium text-foreground">{u.full_name || '-'}</td>
-                        <td className="p-3 text-muted-foreground text-xs">{u.email}</td>
-                        <td className="p-3 font-mono text-xs text-primary font-semibold">{u.referral_code}</td>
-                        <td className="p-3 text-xs text-muted-foreground">{referrer ? referrer.full_name : '-'}</td>
-                        <td className="p-3 font-mono text-[10px] text-muted-foreground truncate max-w-[100px]">{u.wallet_address || '-'}</td>
-                        <td className="p-3">
-                          <Badge variant="outline" className={u.is_blocked ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'}>
+                        <td className="p-2 font-medium text-foreground text-xs">{u.full_name || '-'}</td>
+                        <td className="p-2 text-muted-foreground text-[10px] sm:text-xs">{u.email}</td>
+                        <td className="p-2">
+                          <div className="flex items-center gap-1">
+                            <span className="font-mono text-xs text-amber-600 dark:text-amber-400 font-semibold">{u.referral_code}</span>
+                            {u.referral_code && <CopyBtn text={u.referral_code} />}
+                          </div>
+                        </td>
+                        <td className="p-2 text-xs text-muted-foreground hidden sm:table-cell">{referrer ? referrer.full_name : '-'}</td>
+                        <td className="p-2 hidden md:table-cell">
+                          {u.wallet_address ? (
+                            <div className="flex items-center gap-1">
+                              <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[80px]">{u.wallet_address}</span>
+                              <CopyBtn text={u.wallet_address} />
+                            </div>
+                          ) : '-'}
+                        </td>
+                        <td className="p-2">
+                          <Badge variant="outline" className={`text-[10px] ${u.is_blocked ? 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'}`}>
                             {u.is_blocked ? 'Blocked' : 'Active'}
                           </Badge>
                         </td>
-                        <td className="p-3 text-muted-foreground text-xs">{new Date(u.created_at).toLocaleDateString()}</td>
-                        <td className="p-3">
-                          <div className="flex gap-1">
-                            <Button size="sm" variant="outline" className="text-xs h-7 px-2" onClick={() => viewUserPortfolio(u)}>
-                              <Eye className="w-3 h-3 mr-1" /> View
+                        <td className="p-2 text-muted-foreground text-xs hidden sm:table-cell">{new Date(u.created_at).toLocaleDateString()}</td>
+                        <td className="p-2">
+                          <div className="flex gap-1 flex-wrap">
+                            <Button size="sm" variant="outline" className="text-[10px] h-7 px-2" onClick={() => viewUserPortfolio(u)}>
+                              <Eye className="w-3 h-3" />
                             </Button>
-                            <Button size="sm" variant="outline" className="text-xs h-7 px-2" onClick={() => toggleBlockUser(u.id, u.is_blocked)}>
+                            <Button size="sm" variant="outline" className="text-[10px] h-7 px-2" onClick={() => toggleBlockUser(u.id, u.is_blocked)}>
                               {u.is_blocked ? <Unlock className="w-3 h-3" /> : <Ban className="w-3 h-3" />}
                             </Button>
                           </div>
@@ -710,11 +904,11 @@ const AdminDashboard = () => {
           <TabsContent value="all-investments">
             <Card className="border-border">
               <CardHeader>
-                <CardTitle className="text-base font-display text-foreground">All Investments ({allInvestments.length})</CardTitle>
-                <div className="flex gap-2 mt-2">
-                  {['all', 'pending', 'confirmed', 'rejected'].map(f => (
+                <CardTitle className="text-base font-display text-foreground">All Investments ({filteredInvestments.length})</CardTitle>
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {(['all', 'pending', 'confirmed', 'rejected'] as const).map(f => (
                     <Button key={f} size="sm" variant={filterTab === f ? 'default' : 'outline'} className="text-xs h-7" onClick={() => setFilterTab(f)}>
-                      {f.charAt(0).toUpperCase() + f.slice(1)}
+                      {f.charAt(0).toUpperCase() + f.slice(1)} ({investmentCountByStatus[f]})
                     </Button>
                   ))}
                 </div>
@@ -723,27 +917,34 @@ const AdminDashboard = () => {
                 <table className="w-full text-sm"><thead><tr className="border-b border-border bg-muted/30">
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">User</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Amount</th>
-                  <th className="text-left p-2 text-muted-foreground font-medium text-xs">Daily</th>
-                  <th className="text-left p-2 text-muted-foreground font-medium text-xs">Days</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs hidden sm:table-cell">Daily</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs hidden sm:table-cell">Days</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">TX</th>
-                  <th className="text-left p-2 text-muted-foreground font-medium text-xs">Date</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs hidden md:table-cell">Date</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Status</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Actions</th>
                 </tr></thead><tbody>
-                  {allInvestments.filter(i => filterTab === 'all' || i.status === filterTab).slice(0, 100).map(inv => (
+                  {filteredInvestments.slice(0, 100).map(inv => (
                     <tr key={inv.id} className="border-b border-border/50 hover:bg-muted/20">
                       <td className="p-2"><p className="text-foreground text-xs font-medium">{getUserName(inv.user_id)}</p><p className="text-[10px] text-muted-foreground">{getUserEmail(inv.user_id)}</p></td>
-                      <td className="p-2 font-semibold text-foreground">${Number(inv.amount).toFixed(2)}</td>
-                      <td className="p-2 text-primary text-xs">${((Number(inv.amount) * 2) / 600).toFixed(4)}</td>
-                      <td className="p-2 text-muted-foreground text-xs">{inv.days_paid || 0}/600</td>
-                      <td className="p-2 font-mono text-[10px] text-muted-foreground truncate max-w-[80px]">{inv.tx_hash || '-'}</td>
-                      <td className="p-2 text-muted-foreground text-xs">{new Date(inv.created_at).toLocaleDateString()}</td>
+                      <td className="p-2 font-semibold text-foreground text-xs">${Number(inv.amount).toFixed(2)}</td>
+                      <td className="p-2 text-amber-600 dark:text-amber-400 text-xs hidden sm:table-cell">${((Number(inv.amount) * 2) / 600).toFixed(4)}</td>
+                      <td className="p-2 text-muted-foreground text-xs hidden sm:table-cell">{inv.days_paid || 0}/600</td>
+                      <td className="p-2">
+                        {inv.tx_hash ? (
+                          <div className="flex items-center gap-1">
+                            <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[50px]">{inv.tx_hash}</span>
+                            <CopyBtn text={inv.tx_hash} />
+                          </div>
+                        ) : '-'}
+                      </td>
+                      <td className="p-2 text-muted-foreground text-xs hidden md:table-cell">{new Date(inv.created_at).toLocaleDateString()}</td>
                       <td className="p-2">{statusBadge(inv.status)}</td>
                       <td className="p-2">
                         {inv.status === 'pending' && (
                           <div className="flex gap-1">
-                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-6 text-[10px] px-2" onClick={() => confirmInvestment(inv)}>✓</Button>
-                            <Button size="sm" variant="destructive" className="h-6 text-[10px] px-2" onClick={() => openRejectDialog(inv.id, 'deposit')}>✗</Button>
+                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-[10px] px-2" onClick={() => confirmInvestment(inv)}>✓</Button>
+                            <Button size="sm" variant="destructive" className="h-7 text-[10px] px-2" onClick={() => openRejectDialog(inv.id, 'deposit')}>✗</Button>
                           </div>
                         )}
                       </td>
@@ -763,24 +964,30 @@ const AdminDashboard = () => {
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">User</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Amount</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Wallet</th>
-                  <th className="text-left p-2 text-muted-foreground font-medium text-xs">Date</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs hidden sm:table-cell">Date</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Status</th>
-                  <th className="text-left p-2 text-muted-foreground font-medium text-xs">Reason</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs hidden sm:table-cell">Reason</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Actions</th>
                 </tr></thead><tbody>
                   {allWithdrawals.slice(0, 100).map(wd => (
                     <tr key={wd.id} className="border-b border-border/50 hover:bg-muted/20">
                       <td className="p-2"><p className="text-foreground text-xs font-medium">{getUserName(wd.user_id)}</p><p className="text-[10px] text-muted-foreground">{getUserEmail(wd.user_id)}</p></td>
-                      <td className="p-2 font-semibold text-foreground">${Number(wd.amount).toFixed(2)}</td>
-                      <td className="p-2 font-mono text-[10px] text-muted-foreground truncate max-w-[120px]">{wd.wallet_address}</td>
-                      <td className="p-2 text-muted-foreground text-xs">{new Date(wd.created_at).toLocaleDateString()}</td>
+                      <td className="p-2 font-semibold text-foreground text-xs">${Number(wd.amount).toFixed(2)}</td>
+                      <td className="p-2">
+                        <div className="flex items-center gap-1">
+                          <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[60px]">{wd.wallet_address}</span>
+                          <CopyBtn text={wd.wallet_address} />
+                        </div>
+                      </td>
+                      <td className="p-2 text-muted-foreground text-xs hidden sm:table-cell">{new Date(wd.created_at).toLocaleDateString()}</td>
                       <td className="p-2">{statusBadge(wd.status)}</td>
-                      <td className="p-2 text-xs text-destructive">{wd.rejection_reason || '-'}</td>
+                      <td className="p-2 text-xs text-destructive hidden sm:table-cell max-w-[100px] truncate">{wd.rejection_reason || '-'}</td>
                       <td className="p-2">
                         {wd.status === 'pending' && (
-                          <div className="flex gap-1">
-                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-6 text-[10px] px-2" onClick={() => approveWithdrawal(wd.id)}>✓</Button>
-                            <Button size="sm" variant="destructive" className="h-6 text-[10px] px-2" onClick={() => openRejectDialog(wd.id, 'withdrawal')}>✗</Button>
+                          <div className="flex gap-1 flex-wrap">
+                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-[10px] px-2" onClick={() => approveWithdrawal(wd.id)}>✓</Button>
+                            <Button size="sm" variant="destructive" className="h-7 text-[10px] px-2" onClick={() => openRejectDialog(wd.id, 'withdrawal')}>✗</Button>
+                            <Button size="sm" variant="outline" className="h-7 text-[10px] px-2 border-amber-500/30 text-amber-700 dark:text-amber-400" onClick={() => setHoldingWdId(wd.id)}>⏸</Button>
                           </div>
                         )}
                       </td>
@@ -798,17 +1005,17 @@ const AdminDashboard = () => {
               <CardContent>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm"><thead><tr className="border-b border-border bg-muted/30">
-                    <th className="text-left p-3 text-muted-foreground font-medium text-xs">Referrer</th>
-                    <th className="text-left p-3 text-muted-foreground font-medium text-xs">Referred User</th>
-                    <th className="text-left p-3 text-muted-foreground font-medium text-xs">Commission</th>
-                    <th className="text-left p-3 text-muted-foreground font-medium text-xs">Date</th>
+                    <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">Referrer</th>
+                    <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">Referred User</th>
+                    <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">Commission</th>
+                    <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs hidden sm:table-cell">Date</th>
                   </tr></thead><tbody>
                     {allCommissions.slice(0, 100).map((c, i) => (
                       <tr key={i} className="border-b border-border/50 hover:bg-muted/20">
-                        <td className="p-3"><p className="text-foreground text-xs font-medium">{getUserName(c.referrer_id)}</p><p className="text-[10px] text-muted-foreground">{getUserEmail(c.referrer_id)}</p></td>
-                        <td className="p-3"><p className="text-foreground text-xs font-medium">{getUserName(c.referred_id)}</p><p className="text-[10px] text-muted-foreground">{getUserEmail(c.referred_id)}</p></td>
-                        <td className="p-3 font-semibold text-primary">${Number(c.amount).toFixed(2)}</td>
-                        <td className="p-3 text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString()}</td>
+                        <td className="p-2 sm:p-3"><p className="text-foreground text-xs font-medium">{getUserName(c.referrer_id)}</p><p className="text-[10px] text-muted-foreground">{getUserEmail(c.referrer_id)}</p></td>
+                        <td className="p-2 sm:p-3"><p className="text-foreground text-xs font-medium">{getUserName(c.referred_id)}</p><p className="text-[10px] text-muted-foreground">{getUserEmail(c.referred_id)}</p></td>
+                        <td className="p-2 sm:p-3 font-semibold text-amber-600 dark:text-amber-400 text-xs">${Number(c.amount).toFixed(2)}</td>
+                        <td className="p-2 sm:p-3 text-muted-foreground text-xs hidden sm:table-cell">{new Date(c.created_at).toLocaleDateString()}</td>
                       </tr>
                     ))}
                   </tbody></table>
@@ -821,15 +1028,15 @@ const AdminDashboard = () => {
                     {users.filter(u => u.referred_by).map((u, i) => {
                       const referrer = users.find(r => r.user_id === u.referred_by);
                       return (
-                        <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
-                          <div className="flex items-center gap-2 flex-1">
-                            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center"><UserCheck className="w-3.5 h-3.5 text-primary" /></div>
-                            <div><p className="text-xs font-medium text-foreground">{referrer?.full_name || 'Unknown'}</p><p className="text-[10px] text-muted-foreground">{referrer?.email}</p></div>
+                        <div key={i} className="flex items-center gap-2 sm:gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0"><UserCheck className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-amber-600 dark:text-amber-400" /></div>
+                            <div className="min-w-0"><p className="text-xs font-medium text-foreground truncate">{referrer?.full_name || 'Unknown'}</p><p className="text-[10px] text-muted-foreground truncate">{referrer?.email}</p></div>
                           </div>
-                          <span className="text-xs text-muted-foreground">→</span>
-                          <div className="flex items-center gap-2 flex-1">
-                            <div className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center"><Users className="w-3.5 h-3.5 text-emerald-500" /></div>
-                            <div><p className="text-xs font-medium text-foreground">{u.full_name || 'Unknown'}</p><p className="text-[10px] text-muted-foreground">{u.email}</p></div>
+                          <span className="text-xs text-muted-foreground shrink-0">→</span>
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0"><Users className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-emerald-600 dark:text-emerald-400" /></div>
+                            <div className="min-w-0"><p className="text-xs font-medium text-foreground truncate">{u.full_name || 'Unknown'}</p><p className="text-[10px] text-muted-foreground truncate">{u.email}</p></div>
                           </div>
                         </div>
                       );
@@ -861,7 +1068,7 @@ const AdminDashboard = () => {
                   <Label className="text-foreground">Message</Label>
                   <textarea value={notifMessage} onChange={e => setNotifMessage(e.target.value)} placeholder="Write your notification..." className="w-full p-3 rounded-md border border-input bg-background text-foreground text-sm min-h-[100px] resize-none focus:outline-none focus:ring-2 focus:ring-ring" />
                 </div>
-                <Button className="bg-gradient-gold text-primary-foreground hover:opacity-90 font-semibold shadow-gold" onClick={handleSendNotification}>
+                <Button className="bg-gradient-gold text-primary-foreground hover:opacity-90 font-semibold shadow-gold h-10" onClick={handleSendNotification}>
                   <Send className="w-4 h-4 mr-2" /> Send Notification
                 </Button>
               </CardContent>
@@ -887,7 +1094,7 @@ const AdminDashboard = () => {
                         <p className="text-sm text-muted-foreground mb-3">{t.message}</p>
                         {t.admin_reply && (
                           <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 mb-3">
-                            <p className="text-[10px] text-primary font-medium mb-1">Your Reply:</p>
+                            <p className="text-[10px] text-amber-700 dark:text-amber-400 font-medium mb-1">Your Reply:</p>
                             <p className="text-xs text-foreground">{t.admin_reply}</p>
                           </div>
                         )}
@@ -896,12 +1103,12 @@ const AdminDashboard = () => {
                             <div className="space-y-2">
                               <textarea value={ticketReply} onChange={e => setTicketReply(e.target.value)} placeholder="Type your reply..." className="w-full p-3 rounded-md border border-input bg-background text-foreground text-sm min-h-[80px] resize-none focus:outline-none focus:ring-2 focus:ring-ring" />
                               <div className="flex gap-2">
-                                <Button size="sm" className="bg-gradient-gold text-primary-foreground hover:opacity-90" onClick={handleReplyTicket}><Send className="w-3 h-3 mr-1" /> Send Reply</Button>
-                                <Button size="sm" variant="outline" onClick={() => { setReplyingTicketId(null); setTicketReply(''); }}>Cancel</Button>
+                                <Button size="sm" className="bg-gradient-gold text-primary-foreground hover:opacity-90 h-9 text-xs px-3" onClick={handleReplyTicket}><Send className="w-3 h-3 mr-1" /> Send Reply</Button>
+                                <Button size="sm" variant="outline" className="h-9 text-xs px-3" onClick={() => { setReplyingTicketId(null); setTicketReply(''); }}>Cancel</Button>
                               </div>
                             </div>
                           ) : (
-                            <Button size="sm" variant="outline" onClick={() => setReplyingTicketId(t.id)}>
+                            <Button size="sm" variant="outline" className="h-9 text-xs px-3" onClick={() => setReplyingTicketId(t.id)}>
                               <MessageSquare className="w-3 h-3 mr-1" /> Reply
                             </Button>
                           )
@@ -923,7 +1130,7 @@ const AdminDashboard = () => {
                     <Label className="text-foreground">USDT Deposit Address (BEP20)</Label>
                     <Input value={usdtAddress} onChange={e => setUsdtAddress(e.target.value)} placeholder="BEP20 USDT address" className="bg-background font-mono text-sm" />
                   </div>
-                  <Button className="bg-gradient-gold text-primary-foreground hover:opacity-90 font-semibold shadow-gold" onClick={updateSettings}>Save Address</Button>
+                  <Button className="bg-gradient-gold text-primary-foreground hover:opacity-90 font-semibold shadow-gold h-10" onClick={updateSettings}>Save Address</Button>
                 </CardContent>
               </Card>
 
@@ -932,7 +1139,7 @@ const AdminDashboard = () => {
                 <CardContent className="space-y-4">
                   {siteSettings?.qr_code_url && (
                     <div className="text-center">
-                      <img src={siteSettings.qr_code_url} alt="Current QR" className="w-40 h-40 mx-auto rounded-lg border border-border" />
+                      <img src={`${siteSettings.qr_code_url}?t=${Date.now()}`} alt="Current QR" className="w-40 h-40 mx-auto rounded-lg border border-border" />
                       <p className="text-xs text-muted-foreground mt-2">Current QR Code</p>
                     </div>
                   )}
