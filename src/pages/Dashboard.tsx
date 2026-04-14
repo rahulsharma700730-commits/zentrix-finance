@@ -10,10 +10,20 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Copy, TrendingUp, Wallet, ArrowDownToLine, Users, DollarSign, Clock, BarChart3, Percent, UserCheck, Bell, MessageSquare, HelpCircle, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Copy, TrendingUp, Wallet, ArrowDownToLine, Users, DollarSign, Clock, BarChart3, Percent, UserCheck, Bell, MessageSquare, HelpCircle, AlertTriangle, CheckCircle, Download } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 
 const CHART_COLORS = ['hsl(43, 96%, 56%)', 'hsl(142, 76%, 36%)', 'hsl(220, 70%, 50%)', 'hsl(0, 84%, 60%)'];
+
+const CopyBtn = ({ text }: { text: string }) => (
+  <button
+    onClick={() => { navigator.clipboard.writeText(text); toast.success('Copied!'); }}
+    className="inline-flex items-center justify-center p-1 rounded hover:bg-muted/80 transition-colors shrink-0"
+    title="Copy"
+  >
+    <Copy className="w-3 h-3 text-muted-foreground" />
+  </button>
+);
 
 const Dashboard = () => {
   const { user, profile, isLoading, refreshProfile } = useAuth();
@@ -23,14 +33,16 @@ const Dashboard = () => {
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [commissions, setCommissions] = useState<any[]>([]);
   const [referrals, setReferrals] = useState<any[]>([]);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
   const [siteSettings, setSiteSettings] = useState<any>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
+  const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const [depositAmount, setDepositAmount] = useState('');
   const [depositTxHash, setDepositTxHash] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [walletAddress, setWalletAddress] = useState('');
   const [editingWallet, setEditingWallet] = useState(false);
   const [newWalletAddress, setNewWalletAddress] = useState('');
   const [ticketSubject, setTicketSubject] = useState('');
@@ -43,6 +55,24 @@ const Dashboard = () => {
   useEffect(() => {
     if (user) fetchData();
   }, [user]);
+
+  // PWA install prompt
+  useEffect(() => {
+    const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallPwa = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') toast.success('App installed!');
+      setDeferredPrompt(null);
+    } else {
+      toast.info('To install: open browser menu → "Add to Home Screen"');
+    }
+  };
 
   const fetchData = async () => {
     if (!user) return;
@@ -63,9 +93,16 @@ const Dashboard = () => {
     setNotifications(notifs.data || []);
     setTickets(tix.data || []);
 
-    if (profile?.referral_code) {
+    // Fetch referrals
+    if (user) {
       const { data } = await supabase.from('profiles').select('full_name, email, created_at').eq('referred_by', user.id);
       setReferrals(data || []);
+    }
+
+    // Fetch who referred me
+    if (profile?.referred_by) {
+      const { data: refData } = await supabase.from('profiles').select('full_name').eq('user_id', profile.referred_by).single();
+      setReferrerName(refData?.full_name || null);
     }
   };
 
@@ -80,7 +117,6 @@ const Dashboard = () => {
   const cappingPercent = expectedTotal > 0 ? Math.min(((totalEarned + totalCommissions) / expectedTotal) * 100, 100) : 0;
   const unreadNotifs = notifications.filter(n => !n.is_read).length;
 
-  // Capping chart data per investment
   const cappingData = useMemo(() =>
     investments.filter(i => i.status === 'confirmed').map(inv => {
       const target = Number(inv.amount) * 2;
@@ -121,7 +157,7 @@ const Dashboard = () => {
     if (amt < 20) { toast.error('Minimum withdrawal is $20'); return; }
     if (amt > availableBalance) { toast.error('Insufficient balance'); return; }
     const addr = profile?.wallet_address;
-    if (!addr) { toast.error('Please set your withdrawal wallet address first in the Settings section'); return; }
+    if (!addr) { toast.error('Please set your withdrawal wallet address first'); return; }
     const { error } = await supabase.from('withdrawals').insert({ user_id: user.id, amount: amt, wallet_address: addr });
     if (error) toast.error(error.message);
     else { toast.success('Withdrawal request submitted!'); setWithdrawAmount(''); fetchData(); }
@@ -148,19 +184,20 @@ const Dashboard = () => {
     fetchData();
   };
 
-  const copyReferralCode = () => {
-    if (profile?.referral_code) { navigator.clipboard.writeText(profile.referral_code); toast.success('Referral code copied!'); }
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copied!');
   };
 
   const statusBadge = (status: string) => {
     const colors: Record<string, string> = {
-      pending: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
-      confirmed: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-      approved: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-      rejected: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
-      completed: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-      open: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-      resolved: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+      pending: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
+      confirmed: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+      approved: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+      rejected: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30',
+      completed: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30',
+      open: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
+      resolved: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
       closed: 'bg-muted text-muted-foreground border-border',
     };
     return <Badge variant="outline" className={colors[status] || 'border-border text-muted-foreground'}>{status}</Badge>;
@@ -171,19 +208,27 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto px-4 pt-20 pb-12">
+      <div className="container mx-auto px-3 sm:px-4 pt-20 pb-12">
         {/* Header */}
-        <div className="mb-6 p-6 rounded-2xl bg-gradient-gold-subtle border border-primary/10">
+        <div className="mb-6 p-4 sm:p-6 rounded-2xl bg-gradient-gold-subtle border border-primary/10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl md:text-3xl font-display font-bold mb-1 text-foreground">
-                Welcome, <span className="text-gradient-gold">{profile?.full_name || 'Investor'}</span> 👋
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-1 text-foreground">
+                Welcome, <span className="text-amber-600 dark:text-amber-400">{profile?.full_name || 'Investor'}</span> 👋
               </h1>
-              <p className="text-muted-foreground text-sm">USDT BEP20 Network • Wallet: <span className="font-mono text-xs">{profile?.wallet_address || 'Not set'}</span></p>
+              <p className="text-muted-foreground text-xs sm:text-sm">USDT BEP20 • Wallet: <span className="font-mono text-xs">{profile?.wallet_address || 'Not set'}</span></p>
+              {referrerName && <p className="text-xs text-muted-foreground mt-1">Referred by: <strong className="text-foreground">{referrerName}</strong></p>}
             </div>
-            {unreadNotifs > 0 && (
-              <Badge className="bg-destructive text-destructive-foreground"><Bell className="w-3 h-3 mr-1" /> {unreadNotifs} new notification{unreadNotifs > 1 ? 's' : ''}</Badge>
-            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              {unreadNotifs > 0 && (
+                <Badge className="bg-destructive text-destructive-foreground"><Bell className="w-3 h-3 mr-1" /> {unreadNotifs} new</Badge>
+              )}
+              {deferredPrompt && (
+                <Button size="sm" variant="outline" className="text-xs h-8 border-primary/30" onClick={handleInstallPwa}>
+                  <Download className="w-3 h-3 mr-1" /> Install App
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -206,22 +251,22 @@ const Dashboard = () => {
         )}
 
         {/* Portfolio Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3 mb-6">
           {[
-            { icon: DollarSign, label: 'Total Invested', value: `$${totalInvested.toFixed(2)}`, color: 'text-primary' },
-            { icon: TrendingUp, label: 'Total Earned', value: `$${totalEarned.toFixed(2)}`, color: 'text-emerald-500' },
-            { icon: Wallet, label: 'Available Balance', value: `$${availableBalance.toFixed(2)}`, color: 'text-primary' },
-            { icon: BarChart3, label: 'Daily Earning', value: `$${dailyRate.toFixed(2)}`, color: 'text-emerald-500' },
+            { icon: DollarSign, label: 'Total Invested', value: `$${totalInvested.toFixed(2)}`, color: 'text-amber-600 dark:text-amber-400' },
+            { icon: TrendingUp, label: 'Total Earned', value: `$${totalEarned.toFixed(2)}`, color: 'text-emerald-600 dark:text-emerald-400' },
+            { icon: Wallet, label: 'Available Balance', value: `$${availableBalance.toFixed(2)}`, color: 'text-amber-600 dark:text-amber-400' },
+            { icon: BarChart3, label: 'Daily Earning', value: `$${dailyRate.toFixed(2)}`, color: 'text-emerald-600 dark:text-emerald-400' },
             { icon: ArrowDownToLine, label: 'Total Withdrawn', value: `$${totalWithdrawn.toFixed(2)}`, color: 'text-muted-foreground' },
-            { icon: Percent, label: 'Capping (200%)', value: `${cappingPercent.toFixed(1)}%`, color: 'text-primary' },
+            { icon: Percent, label: 'Capping (200%)', value: `${cappingPercent.toFixed(1)}%`, color: 'text-amber-600 dark:text-amber-400' },
           ].map((item, i) => (
             <Card key={i} className="border-border bg-card">
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <item.icon className={`w-3.5 h-3.5 ${item.color}`} />
-                  <span className="text-[11px] text-muted-foreground font-medium">{item.label}</span>
+                  <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">{item.label}</span>
                 </div>
-                <div className={`text-lg font-display font-bold ${item.color}`}>{item.value}</div>
+                <div className={`text-sm sm:text-lg font-display font-bold ${item.color}`}>{item.value}</div>
               </CardContent>
             </Card>
           ))}
@@ -238,7 +283,7 @@ const Dashboard = () => {
                   <span>Target: ${expectedTotal.toFixed(2)}</span>
                 </div>
                 <div className="h-4 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500" style={{ width: `${cappingPercent}%` }} />
+                  <div className="h-full bg-gradient-to-r from-amber-500 to-amber-600 rounded-full transition-all duration-500" style={{ width: `${cappingPercent}%` }} />
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 text-center">{cappingPercent.toFixed(1)}% of 200% cap reached</p>
               </div>
@@ -295,8 +340,7 @@ const Dashboard = () => {
                 <div className="flex flex-wrap gap-3 justify-center mt-2">
                   {pieData.map((d, i) => (
                     <div key={i} className="flex items-center gap-1.5 text-xs">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                      <span className="text-muted-foreground">{d.name}</span>
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} /><span className="text-muted-foreground">{d.name}</span>
                     </div>
                   ))}
                 </div>
@@ -307,16 +351,18 @@ const Dashboard = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="deposit" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="deposit">Deposit</TabsTrigger>
-            <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
-            <TabsTrigger value="investments">Investments</TabsTrigger>
-            <TabsTrigger value="referral">Referral</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="notifications">Alerts {unreadNotifs > 0 && <Badge className="ml-1 bg-destructive text-destructive-foreground text-[10px] px-1 py-0">{unreadNotifs}</Badge>}</TabsTrigger>
-            <TabsTrigger value="support">Support</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-3 px-3">
+            <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-4 md:grid-cols-8">
+              <TabsTrigger value="deposit" className="text-xs whitespace-nowrap">Deposit</TabsTrigger>
+              <TabsTrigger value="withdraw" className="text-xs whitespace-nowrap">Withdraw</TabsTrigger>
+              <TabsTrigger value="investments" className="text-xs whitespace-nowrap">Investments</TabsTrigger>
+              <TabsTrigger value="referral" className="text-xs whitespace-nowrap">Referral</TabsTrigger>
+              <TabsTrigger value="history" className="text-xs whitespace-nowrap">History</TabsTrigger>
+              <TabsTrigger value="notifications" className="text-xs whitespace-nowrap">Alerts {unreadNotifs > 0 && <Badge className="ml-1 bg-destructive text-destructive-foreground text-[10px] px-1 py-0">{unreadNotifs}</Badge>}</TabsTrigger>
+              <TabsTrigger value="support" className="text-xs whitespace-nowrap">Support</TabsTrigger>
+              <TabsTrigger value="settings" className="text-xs whitespace-nowrap">Settings</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Deposit Tab */}
           <TabsContent value="deposit">
@@ -328,10 +374,10 @@ const Dashboard = () => {
                     <div className="mb-6 p-4 rounded-xl bg-muted/50 border border-border text-center">
                       <p className="text-xs text-muted-foreground mb-1 font-medium">Send USDT via BEP20 (BSC) Network to:</p>
                       {siteSettings.qr_code_url && (
-                        <img src={siteSettings.qr_code_url} alt="QR Code" className="w-40 h-40 mx-auto my-3 rounded-lg border border-border" />
+                        <img src={`${siteSettings.qr_code_url}?t=${Date.now()}`} alt="QR Code" className="w-40 h-40 mx-auto my-3 rounded-lg border border-border" />
                       )}
                       <p className="text-sm font-mono break-all font-medium text-foreground mb-3">{siteSettings.usdt_address}</p>
-                      <Button variant="outline" size="sm" className="border-primary/20" onClick={() => { navigator.clipboard.writeText(siteSettings.usdt_address); toast.success('Address copied!'); }}>
+                      <Button variant="outline" size="sm" className="border-primary/20" onClick={() => copyToClipboard(siteSettings.usdt_address)}>
                         <Copy className="w-3 h-3 mr-1" /> Copy Address
                       </Button>
                       <p className="text-[10px] text-destructive mt-2">⚠️ Only send USDT on BEP20 network. Other networks may result in lost funds.</p>
@@ -356,10 +402,16 @@ const Dashboard = () => {
                   <div className="space-y-2">
                     {investments.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">No deposits yet</p> :
                       investments.slice(0, 8).map(inv => (
-                        <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
-                          <div>
+                        <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border gap-2">
+                          <div className="min-w-0">
                             <p className="font-semibold text-foreground">${Number(inv.amount).toFixed(2)}</p>
                             <p className="text-xs text-muted-foreground">{new Date(inv.created_at).toLocaleDateString()}</p>
+                            {inv.tx_hash && (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <p className="text-[10px] font-mono text-muted-foreground truncate max-w-[140px]">{inv.tx_hash}</p>
+                                <CopyBtn text={inv.tx_hash} />
+                              </div>
+                            )}
                           </div>
                           {statusBadge(inv.status)}
                         </div>
@@ -378,12 +430,12 @@ const Dashboard = () => {
                 <CardContent>
                   <div className="mb-6 p-5 rounded-xl bg-gradient-gold-subtle border border-primary/10 text-center">
                     <p className="text-xs text-muted-foreground font-medium">Available Balance</p>
-                    <p className="text-3xl font-display font-bold text-gradient-gold">${availableBalance.toFixed(2)}</p>
+                    <p className="text-3xl font-display font-bold text-amber-600 dark:text-amber-400">${availableBalance.toFixed(2)}</p>
                     {availableBalance < 20 && <p className="text-xs text-destructive mt-1">Minimum $20 required</p>}
                   </div>
                   {!profile?.wallet_address ? (
                     <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
-                      <AlertTriangle className="w-5 h-5 text-amber-500 mx-auto mb-2" />
+                      <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mx-auto mb-2" />
                       <p className="text-sm text-foreground font-medium mb-2">Set your withdrawal wallet first</p>
                       <p className="text-xs text-muted-foreground mb-3">Go to the Settings tab to add your BEP20 wallet address.</p>
                     </div>
@@ -411,15 +463,15 @@ const Dashboard = () => {
                   <div className="space-y-2">
                     {withdrawals.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">No withdrawals yet</p> :
                       withdrawals.map(wd => (
-                        <div key={wd.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
-                          <div>
+                        <div key={wd.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border gap-2">
+                          <div className="min-w-0">
                             <p className="font-semibold text-foreground">${Number(wd.amount).toFixed(2)}</p>
                             <p className="text-xs text-muted-foreground">{new Date(wd.created_at).toLocaleDateString()}</p>
                             <p className="text-[10px] text-muted-foreground font-mono truncate max-w-[180px]">{wd.wallet_address}</p>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right shrink-0">
                             {statusBadge(wd.status)}
-                            {wd.rejection_reason && <p className="text-[10px] text-destructive mt-1">{wd.rejection_reason}</p>}
+                            {wd.rejection_reason && <p className="text-[10px] text-destructive mt-1 max-w-[120px]">{wd.rejection_reason}</p>}
                           </div>
                         </div>
                       ))}
@@ -437,22 +489,29 @@ const Dashboard = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead><tr className="border-b border-border bg-muted/30">
-                      <th className="text-left p-3 text-muted-foreground font-medium text-xs">Date</th>
-                      <th className="text-left p-3 text-muted-foreground font-medium text-xs">Amount</th>
-                      <th className="text-left p-3 text-muted-foreground font-medium text-xs">Daily Return</th>
-                      <th className="text-left p-3 text-muted-foreground font-medium text-xs">Days Paid</th>
-                      <th className="text-left p-3 text-muted-foreground font-medium text-xs">Total Expected</th>
-                      <th className="text-left p-3 text-muted-foreground font-medium text-xs">Status</th>
+                      <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">Date</th>
+                      <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">Amount</th>
+                      <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">Daily</th>
+                      <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">Days</th>
+                      <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">TX Hash</th>
+                      <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">Status</th>
                     </tr></thead>
                     <tbody>
                       {investments.map(inv => (
                         <tr key={inv.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                          <td className="p-3 text-foreground">{new Date(inv.created_at).toLocaleDateString()}</td>
-                          <td className="p-3 font-semibold text-foreground">${Number(inv.amount).toFixed(2)}</td>
-                          <td className="p-3 text-primary font-medium">${((Number(inv.amount) * 2) / 600).toFixed(4)}/day</td>
-                          <td className="p-3 text-muted-foreground">{inv.days_paid || 0} / 600</td>
-                          <td className="p-3 text-foreground font-medium">${(Number(inv.amount) * 2).toFixed(2)}</td>
-                          <td className="p-3">{statusBadge(inv.status)}</td>
+                          <td className="p-2 sm:p-3 text-foreground text-xs">{new Date(inv.created_at).toLocaleDateString()}</td>
+                          <td className="p-2 sm:p-3 font-semibold text-foreground">${Number(inv.amount).toFixed(2)}</td>
+                          <td className="p-2 sm:p-3 text-amber-600 dark:text-amber-400 font-medium text-xs">${((Number(inv.amount) * 2) / 600).toFixed(4)}/day</td>
+                          <td className="p-2 sm:p-3 text-muted-foreground text-xs">{inv.days_paid || 0}/600</td>
+                          <td className="p-2 sm:p-3">
+                            {inv.tx_hash ? (
+                              <div className="flex items-center gap-1">
+                                <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[80px]">{inv.tx_hash}</span>
+                                <CopyBtn text={inv.tx_hash} />
+                              </div>
+                            ) : '-'}
+                          </td>
+                          <td className="p-2 sm:p-3">{statusBadge(inv.status)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -471,19 +530,27 @@ const Dashboard = () => {
                 <CardContent>
                   <div className="p-5 rounded-xl bg-gradient-gold-subtle border border-primary/10 mb-6 text-center">
                     <p className="text-xs text-muted-foreground mb-2 font-medium">Share this code to earn 10% instant commission:</p>
-                    <div className="text-3xl font-display font-bold text-gradient-gold tracking-widest mb-3">{profile?.referral_code || '---'}</div>
-                    <Button variant="outline" size="sm" className="border-primary/20" onClick={copyReferralCode}><Copy className="w-3 h-3 mr-1" /> Copy Code</Button>
+                    <div className="text-2xl sm:text-3xl font-display font-bold text-amber-600 dark:text-amber-400 tracking-widest mb-3">{profile?.referral_code || '---'}</div>
+                    <Button variant="outline" size="sm" className="border-primary/20" onClick={() => profile?.referral_code && copyToClipboard(profile.referral_code)}>
+                      <Copy className="w-3 h-3 mr-1" /> Copy Code
+                    </Button>
                     <p className="text-[10px] text-muted-foreground mt-3">New investor enters this code during signup → You get 10% of their investment instantly!</p>
                   </div>
+                  {referrerName && (
+                    <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border">
+                      <p className="text-xs text-muted-foreground">You were referred by:</p>
+                      <p className="text-sm font-medium text-foreground">{referrerName}</p>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="text-center p-4 rounded-xl bg-muted/50 border border-border">
-                      <Users className="w-5 h-5 text-primary mx-auto mb-1" />
+                      <Users className="w-5 h-5 text-amber-600 dark:text-amber-400 mx-auto mb-1" />
                       <div className="text-2xl font-display font-bold text-foreground">{referrals.length}</div>
                       <div className="text-xs text-muted-foreground">Total Referrals</div>
                     </div>
                     <div className="text-center p-4 rounded-xl bg-muted/50 border border-border">
-                      <DollarSign className="w-5 h-5 text-primary mx-auto mb-1" />
-                      <div className="text-2xl font-display font-bold text-gradient-gold">${totalCommissions.toFixed(2)}</div>
+                      <DollarSign className="w-5 h-5 text-amber-600 dark:text-amber-400 mx-auto mb-1" />
+                      <div className="text-2xl font-display font-bold text-amber-600 dark:text-amber-400">${totalCommissions.toFixed(2)}</div>
                       <div className="text-xs text-muted-foreground">Commission Earned</div>
                     </div>
                   </div>
@@ -497,7 +564,7 @@ const Dashboard = () => {
                       referrals.map((r, i) => (
                         <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><UserCheck className="w-4 h-4 text-primary" /></div>
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><UserCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" /></div>
                             <div>
                               <p className="font-medium text-foreground text-sm">{r.full_name || 'Investor'}</p>
                               <p className="text-xs text-muted-foreground">{r.email}</p>
@@ -514,7 +581,7 @@ const Dashboard = () => {
                         {commissions.slice(0, 10).map((c, i) => (
                           <div key={i} className="flex items-center justify-between p-2 rounded-lg text-sm">
                             <span className="text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString()}</span>
-                            <span className="text-emerald-500 font-semibold">+${Number(c.amount).toFixed(2)}</span>
+                            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+${Number(c.amount).toFixed(2)}</span>
                           </div>
                         ))}
                       </div>
@@ -533,27 +600,27 @@ const Dashboard = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead><tr className="border-b border-border bg-muted/30">
-                      <th className="text-left p-3 text-muted-foreground font-medium text-xs">Type</th>
-                      <th className="text-left p-3 text-muted-foreground font-medium text-xs">Date</th>
-                      <th className="text-right p-3 text-muted-foreground font-medium text-xs">Amount</th>
-                      <th className="text-right p-3 text-muted-foreground font-medium text-xs">Status</th>
+                      <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">Type</th>
+                      <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">Date</th>
+                      <th className="text-right p-2 sm:p-3 text-muted-foreground font-medium text-xs">Amount</th>
+                      <th className="text-right p-2 sm:p-3 text-muted-foreground font-medium text-xs">Status</th>
                     </tr></thead>
                     <tbody>
                       {[
-                        ...investments.map(i => ({ type: 'Deposit', amount: Number(i.amount), date: i.created_at, status: i.status })),
-                        ...withdrawals.map(w => ({ type: 'Withdrawal', amount: -Number(w.amount), date: w.created_at, status: w.status })),
-                        ...commissions.map(c => ({ type: 'Referral', amount: Number(c.amount), date: c.created_at, status: 'confirmed' })),
+                        ...investments.map(i => ({ type: 'Deposit', amount: Number(i.amount), date: i.created_at, status: i.status, hash: i.tx_hash })),
+                        ...withdrawals.map(w => ({ type: 'Withdrawal', amount: -Number(w.amount), date: w.created_at, status: w.status, hash: '' })),
+                        ...commissions.map(c => ({ type: 'Referral', amount: Number(c.amount), date: c.created_at, status: 'confirmed', hash: '' })),
                       ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((tx, i) => (
                         <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                          <td className="p-3"><div className="flex items-center gap-2">
-                            {tx.type === 'Deposit' && <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />}
+                          <td className="p-2 sm:p-3"><div className="flex items-center gap-2">
+                            {tx.type === 'Deposit' && <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
                             {tx.type === 'Withdrawal' && <ArrowDownToLine className="w-3.5 h-3.5 text-red-500" />}
-                            {tx.type === 'Referral' && <Users className="w-3.5 h-3.5 text-primary" />}
-                            <span className="font-medium text-foreground">{tx.type}</span>
+                            {tx.type === 'Referral' && <Users className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
+                            <span className="font-medium text-foreground text-xs sm:text-sm">{tx.type}</span>
                           </div></td>
-                          <td className="p-3 text-muted-foreground">{new Date(tx.date).toLocaleDateString()}</td>
-                          <td className={`p-3 text-right font-semibold ${tx.amount > 0 ? 'text-emerald-500' : 'text-red-500'}`}>{tx.amount > 0 ? '+' : ''}${Math.abs(tx.amount).toFixed(2)}</td>
-                          <td className="p-3 text-right">{statusBadge(tx.status)}</td>
+                          <td className="p-2 sm:p-3 text-muted-foreground text-xs">{new Date(tx.date).toLocaleDateString()}</td>
+                          <td className={`p-2 sm:p-3 text-right font-semibold text-xs sm:text-sm ${tx.amount > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>{tx.amount > 0 ? '+' : ''}${Math.abs(tx.amount).toFixed(2)}</td>
+                          <td className="p-2 sm:p-3 text-right">{statusBadge(tx.status)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -574,12 +641,12 @@ const Dashboard = () => {
                     notifications.map(n => (
                       <div key={n.id} className={`p-4 rounded-xl border ${n.is_read ? 'bg-muted/30 border-border' : 'bg-primary/5 border-primary/20'}`}>
                         <div className="flex items-start justify-between gap-3">
-                          <div>
+                          <div className="min-w-0">
                             <p className="font-medium text-foreground text-sm">{n.title}</p>
                             <p className="text-xs text-muted-foreground mt-1">{n.message}</p>
                             <p className="text-[10px] text-muted-foreground mt-2">{new Date(n.created_at).toLocaleString()}</p>
                           </div>
-                          {!n.is_read && <Button size="sm" variant="outline" className="text-xs h-6 px-2 shrink-0" onClick={() => markNotifRead(n.id)}>Mark Read</Button>}
+                          {!n.is_read && <Button size="sm" variant="outline" className="text-xs h-7 px-2 shrink-0" onClick={() => markNotifRead(n.id)}>Read</Button>}
                         </div>
                       </div>
                     ))}
@@ -621,7 +688,7 @@ const Dashboard = () => {
                           <p className="text-xs text-muted-foreground mb-2">{t.message}</p>
                           {t.admin_reply && (
                             <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                              <p className="text-[10px] text-primary font-medium mb-1">Admin Reply:</p>
+                              <p className="text-[10px] text-amber-700 dark:text-amber-400 font-medium mb-1">Admin Reply:</p>
                               <p className="text-xs text-foreground">{t.admin_reply}</p>
                             </div>
                           )}
@@ -644,7 +711,11 @@ const Dashboard = () => {
                   <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-2">
                     <p className="text-sm text-foreground"><strong>Name:</strong> {profile?.full_name}</p>
                     <p className="text-sm text-foreground"><strong>Email:</strong> {profile?.email}</p>
-                    <p className="text-sm text-foreground"><strong>Referral Code:</strong> <span className="text-primary font-mono">{profile?.referral_code}</span></p>
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <strong>Referral Code:</strong> <span className="text-amber-600 dark:text-amber-400 font-mono">{profile?.referral_code}</span>
+                      {profile?.referral_code && <CopyBtn text={profile.referral_code} />}
+                    </div>
+                    {referrerName && <p className="text-sm text-foreground"><strong>Referred by:</strong> {referrerName}</p>}
                     <p className="text-sm text-foreground"><strong>Joined:</strong> {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '-'}</p>
                   </div>
                 </div>
