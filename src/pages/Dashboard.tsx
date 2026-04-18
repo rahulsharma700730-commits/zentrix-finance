@@ -28,8 +28,12 @@ const CopyBtn = ({ text }: { text: string }) => (
 );
 
 const Dashboard = () => {
-  const { user, profile, isLoading, refreshProfile } = useAuth();
+  const { user, profile, isAdmin, isLoading, refreshProfile } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && isAdmin) navigate('/admin', { replace: true });
+  }, [isAdmin, isLoading, navigate]);
   const [investments, setInvestments] = useState<any[]>([]);
   const [earnings, setEarnings] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
