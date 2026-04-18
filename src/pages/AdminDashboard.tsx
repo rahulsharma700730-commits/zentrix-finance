@@ -681,11 +681,21 @@ const AdminDashboard = () => {
       {holdDialog}
       <div className="container mx-auto px-3 sm:px-4 pt-20 pb-12">
         <div className="mb-8 p-4 sm:p-6 rounded-2xl bg-[#070a0f] border border-white/10">
-          <div className="flex items-center gap-3 mb-2">
-            <Shield className="w-6 sm:w-7 h-6 sm:h-7 text-[hsl(43,96%,56%)]" />
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-white">
-              Admin <span className="text-gradient-gold">Control Panel</span>
-            </h1>
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <Shield className="w-6 sm:w-7 h-6 sm:h-7 text-[hsl(43,96%,56%)] shrink-0" />
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-white truncate">
+                Admin <span className="text-gradient-gold">Control Panel</span>
+              </h1>
+            </div>
+            <AdminNotificationBell
+              pendingDeposits={stats.pendingDeposits}
+              pendingWithdrawals={stats.pendingWithdrawals}
+              openTickets={stats.openTickets}
+              recentRejections={allWithdrawals.filter(w => w.status === 'pending' && w.rejection_reason)}
+              recentInvestments={allInvestments.slice(0, 5)}
+              getUserName={getUserName}
+            />
           </div>
           <p className="text-white/50 text-xs sm:text-sm">Full system management • Investments • Withdrawals • Users • Support</p>
         </div>
