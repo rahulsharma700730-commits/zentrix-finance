@@ -20,6 +20,8 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 
+import { AdminNotificationBell } from '@/components/AdminNotificationBell';
+
 const CHART_COLORS = ['hsl(43, 96%, 56%)', 'hsl(142, 76%, 36%)', 'hsl(0, 84%, 60%)', 'hsl(220, 70%, 50%)'];
 
 const REJECTION_REASONS = [
