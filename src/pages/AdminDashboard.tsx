@@ -831,7 +831,6 @@ const AdminDashboard = () => {
                             <CopyBtn text={wd.wallet_address} />
                           </div>
                           <p className="text-xs text-muted-foreground">{getUserEmail(wd.user_id)} • {new Date(wd.created_at).toLocaleString()}</p>
-                          {wd.rejection_reason && <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">⚠️ {wd.rejection_reason}</p>}
                         </div>
                         <div className="flex gap-2 shrink-0 flex-wrap">
                           <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium h-9 text-xs px-3" onClick={() => approveWithdrawal(wd.id)}>
