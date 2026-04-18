@@ -2,16 +2,17 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Navbar } from '@/components/Navbar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Copy, TrendingUp, Wallet, ArrowDownToLine, Users, DollarSign, Clock, BarChart3, Percent, UserCheck, Bell, MessageSquare, HelpCircle, AlertTriangle, CheckCircle, Download } from 'lucide-react';
+import { Copy, TrendingUp, Wallet, ArrowDownToLine, Users, DollarSign, BarChart3, Percent, UserCheck, Bell, MessageSquare, HelpCircle, AlertTriangle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
+import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
+import { DashboardSidebar, type DashboardSection } from '@/components/DashboardSidebar';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const CHART_COLORS = ['hsl(43, 96%, 56%)', 'hsl(142, 76%, 36%)', 'hsl(220, 70%, 50%)', 'hsl(0, 84%, 60%)'];
 
