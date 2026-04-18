@@ -72,14 +72,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string, referralCode?: string) => {
-    let referredBy: string | undefined;
-    if (referralCode) {
-      const { data } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('referral_code', referralCode)
-        .single();
-      referredBy = data?.user_id;
+    let referredBy: string | null = null;
+    if (referralCode && referralCode.trim()) {
+      const { data: refUserId } = await supabase.rpc('get_user_id_by_referral_code', {
+        _code: referralCode.trim(),
+      });
+      if (!refUserId) {
+        return { data: null, error: { message: 'Invalid referral code' } as any };
+      }
+      referredBy = refUserId as string;
     }
 
     const { data, error } = await supabase.auth.signUp({
@@ -87,16 +88,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       password,
       options: {
         data: { full_name: fullName, referred_by: referredBy },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/dashboard`,
       },
     });
-
-    if (!error && referredBy && data.user) {
-      await supabase
-        .from('profiles')
-        .update({ referred_by: referredBy })
-        .eq('user_id', data.user.id);
-    }
 
     return { data, error };
   };
