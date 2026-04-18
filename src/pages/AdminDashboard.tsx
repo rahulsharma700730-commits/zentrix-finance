@@ -20,6 +20,8 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 
+import { AdminNotificationBell } from '@/components/AdminNotificationBell';
+
 const CHART_COLORS = ['hsl(43, 96%, 56%)', 'hsl(142, 76%, 36%)', 'hsl(0, 84%, 60%)', 'hsl(220, 70%, 50%)'];
 
 const REJECTION_REASONS = [
@@ -681,11 +683,21 @@ const AdminDashboard = () => {
       {holdDialog}
       <div className="container mx-auto px-3 sm:px-4 pt-20 pb-12">
         <div className="mb-8 p-4 sm:p-6 rounded-2xl bg-[#070a0f] border border-white/10">
-          <div className="flex items-center gap-3 mb-2">
-            <Shield className="w-6 sm:w-7 h-6 sm:h-7 text-[hsl(43,96%,56%)]" />
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-white">
-              Admin <span className="text-gradient-gold">Control Panel</span>
-            </h1>
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <Shield className="w-6 sm:w-7 h-6 sm:h-7 text-[hsl(43,96%,56%)] shrink-0" />
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-white truncate">
+                Admin <span className="text-gradient-gold">Control Panel</span>
+              </h1>
+            </div>
+            <AdminNotificationBell
+              pendingDeposits={stats.pendingDeposits}
+              pendingWithdrawals={stats.pendingWithdrawals}
+              openTickets={stats.openTickets}
+              recentRejections={allWithdrawals.filter(w => w.status === 'pending' && w.rejection_reason)}
+              recentInvestments={allInvestments.slice(0, 5)}
+              getUserName={getUserName}
+            />
           </div>
           <p className="text-white/50 text-xs sm:text-sm">Full system management • Investments • Withdrawals • Users • Support</p>
         </div>
@@ -819,7 +831,6 @@ const AdminDashboard = () => {
                             <CopyBtn text={wd.wallet_address} />
                           </div>
                           <p className="text-xs text-muted-foreground">{getUserEmail(wd.user_id)} • {new Date(wd.created_at).toLocaleString()}</p>
-                          {wd.rejection_reason && <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">⚠️ {wd.rejection_reason}</p>}
                         </div>
                         <div className="flex gap-2 shrink-0 flex-wrap">
                           <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium h-9 text-xs px-3" onClick={() => approveWithdrawal(wd.id)}>
