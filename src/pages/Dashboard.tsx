@@ -204,119 +204,116 @@ const Dashboard = () => {
     return <Badge variant="outline" className={colors[status] || 'border-border text-muted-foreground'}>{status}</Badge>;
   };
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" /></div>;
+  const [section, setSection] = useState<DashboardSection>('overview');
 
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="container mx-auto px-3 sm:px-4 pt-20 pb-12">
-        {/* Header */}
-        <div className="mb-6 p-4 sm:p-6 rounded-2xl bg-gradient-gold-subtle border border-primary/10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+  const OverviewBlock = (
+    <>
+      {/* Header */}
+      <div className="mb-6 p-4 sm:p-6 rounded-2xl bg-gradient-gold-subtle border border-primary/20">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-1 text-foreground">
+              Welcome, <span className="text-amber-700 dark:text-amber-400">{profile?.full_name || 'Investor'}</span> 👋
+            </h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">
+              USDT BEP20 • Wallet: <span className="font-mono text-xs text-foreground/80">{profile?.wallet_address || 'Not set'}</span>
+            </p>
+            {referrerName && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Referred by: <strong className="text-foreground">{referrerName}</strong>
+              </p>
+            )}
+          </div>
+          {unreadNotifs > 0 && (
+            <Badge className="bg-destructive text-destructive-foreground self-start"><Bell className="w-3 h-3 mr-1" /> {unreadNotifs} new</Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Rejected deposits alert */}
+      {investments.filter(i => i.status === 'rejected').length > 0 && (
+        <div className="mb-4 p-4 rounded-xl bg-destructive/10 border border-destructive/30">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
             <div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-1 text-foreground">
-                Welcome, <span className="text-amber-600 dark:text-amber-400">{profile?.full_name || 'Investor'}</span> 👋
-              </h1>
-              <p className="text-muted-foreground text-xs sm:text-sm">USDT BEP20 • Wallet: <span className="font-mono text-xs">{profile?.wallet_address || 'Not set'}</span></p>
-              {referrerName && <p className="text-xs text-muted-foreground mt-1">Referred by: <strong className="text-foreground">{referrerName}</strong></p>}
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {unreadNotifs > 0 && (
-                <Badge className="bg-destructive text-destructive-foreground"><Bell className="w-3 h-3 mr-1" /> {unreadNotifs} new</Badge>
-              )}
-              {deferredPrompt && (
-                <Button size="sm" variant="outline" className="text-xs h-8 border-primary/30" onClick={handleInstallPwa}>
-                  <Download className="w-3 h-3 mr-1" /> Install App
-                </Button>
-              )}
+              <p className="text-sm font-semibold text-destructive">Some deposits were rejected</p>
+              {investments.filter(i => i.status === 'rejected').map(inv => (
+                <p key={inv.id} className="text-xs text-foreground/80 mt-1">
+                  ${Number(inv.amount).toFixed(2)} on {new Date(inv.created_at).toLocaleDateString()}
+                  {inv.tx_hash && <span className="font-mono"> — TX: {inv.tx_hash.slice(0, 20)}...</span>}
+                </p>
+              ))}
             </div>
           </div>
         </div>
+      )}
 
-        {/* Rejected deposits alert */}
-        {investments.filter(i => i.status === 'rejected').length > 0 && (
-          <div className="mb-4 p-4 rounded-xl bg-destructive/10 border border-destructive/20">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-destructive">Some deposits were rejected</p>
-                {investments.filter(i => i.status === 'rejected').map(inv => (
-                  <p key={inv.id} className="text-xs text-muted-foreground mt-1">
-                    ${Number(inv.amount).toFixed(2)} on {new Date(inv.created_at).toLocaleDateString()}
-                    {inv.tx_hash && <span className="font-mono"> — TX: {inv.tx_hash.slice(0, 20)}...</span>}
-                  </p>
-                ))}
+      {/* Portfolio Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3 mb-6">
+        {[
+          { icon: DollarSign, label: 'Total Invested', value: `$${totalInvested.toFixed(2)}`, color: 'text-amber-700 dark:text-amber-400' },
+          { icon: TrendingUp, label: 'Total Earned', value: `$${totalEarned.toFixed(2)}`, color: 'text-emerald-700 dark:text-emerald-400' },
+          { icon: Wallet, label: 'Available Balance', value: `$${availableBalance.toFixed(2)}`, color: 'text-amber-700 dark:text-amber-400' },
+          { icon: BarChart3, label: 'Daily Earning', value: `$${dailyRate.toFixed(2)}`, color: 'text-emerald-700 dark:text-emerald-400' },
+          { icon: ArrowDownToLine, label: 'Total Withdrawn', value: `$${totalWithdrawn.toFixed(2)}`, color: 'text-foreground' },
+          { icon: Percent, label: 'Capping (200%)', value: `${cappingPercent.toFixed(1)}%`, color: 'text-amber-700 dark:text-amber-400' },
+        ].map((item, i) => (
+          <Card key={i} className="border-border bg-card">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <item.icon className={`w-3.5 h-3.5 ${item.color}`} />
+                <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">{item.label}</span>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Portfolio Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3 mb-6">
-          {[
-            { icon: DollarSign, label: 'Total Invested', value: `$${totalInvested.toFixed(2)}`, color: 'text-amber-600 dark:text-amber-400' },
-            { icon: TrendingUp, label: 'Total Earned', value: `$${totalEarned.toFixed(2)}`, color: 'text-emerald-600 dark:text-emerald-400' },
-            { icon: Wallet, label: 'Available Balance', value: `$${availableBalance.toFixed(2)}`, color: 'text-amber-600 dark:text-amber-400' },
-            { icon: BarChart3, label: 'Daily Earning', value: `$${dailyRate.toFixed(2)}`, color: 'text-emerald-600 dark:text-emerald-400' },
-            { icon: ArrowDownToLine, label: 'Total Withdrawn', value: `$${totalWithdrawn.toFixed(2)}`, color: 'text-muted-foreground' },
-            { icon: Percent, label: 'Capping (200%)', value: `${cappingPercent.toFixed(1)}%`, color: 'text-amber-600 dark:text-amber-400' },
-          ].map((item, i) => (
-            <Card key={i} className="border-border bg-card">
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <item.icon className={`w-3.5 h-3.5 ${item.color}`} />
-                  <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">{item.label}</span>
-                </div>
-                <div className={`text-sm sm:text-lg font-display font-bold ${item.color}`}>{item.value}</div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Capping Progress */}
-        {totalInvested > 0 && (
-          <Card className="border-border mb-6">
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-display text-foreground">Investment Capping Status (200% Return)</CardTitle></CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                  <span>Earned: ${(totalEarned + totalCommissions).toFixed(2)}</span>
-                  <span>Target: ${expectedTotal.toFixed(2)}</span>
-                </div>
-                <div className="h-4 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-amber-500 to-amber-600 rounded-full transition-all duration-500" style={{ width: `${cappingPercent}%` }} />
-                </div>
-                <p className="text-xs text-muted-foreground mt-1 text-center">{cappingPercent.toFixed(1)}% of 200% cap reached</p>
-              </div>
-              {cappingData.length > 0 && (
-                <div className="h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={cappingData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                      <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', color: 'hsl(var(--foreground))' }} />
-                      <Bar dataKey="earned" stackId="a" fill="hsl(43, 96%, 56%)" name="Earned" radius={[0,0,0,0]} />
-                      <Bar dataKey="remaining" stackId="a" fill="hsl(var(--muted))" name="Remaining" radius={[4,4,0,0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
+              <div className={`text-sm sm:text-lg font-display font-bold ${item.color}`}>{item.value}</div>
             </CardContent>
           </Card>
-        )}
+        ))}
+      </div>
 
-        {/* Charts */}
-        <div className="grid md:grid-cols-3 gap-4 mb-6">
-          <Card className="md:col-span-2 border-border">
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-display text-foreground">Portfolio Growth</CardTitle></CardHeader>
-            <CardContent>
-              <div className="h-56">
-                {chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
-                      <defs><linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(43, 96%, 56%)" stopOpacity={0.3} /><stop offset="95%" stopColor="hsl(43, 96%, 56%)" stopOpacity={0} /></linearGradient></defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+      {/* Capping Progress */}
+      {totalInvested > 0 && (
+        <Card className="border-border mb-6">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-display text-foreground">Investment Capping Status (200% Return)</CardTitle></CardHeader>
+          <CardContent>
+            <div className="mb-4">
+              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                <span>Earned: ${(totalEarned + totalCommissions).toFixed(2)}</span>
+                <span>Target: ${expectedTotal.toFixed(2)}</span>
+              </div>
+              <div className="h-4 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-amber-500 to-amber-600 rounded-full transition-all duration-500" style={{ width: `${cappingPercent}%` }} />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 text-center">{cappingPercent.toFixed(1)}% of 200% cap reached</p>
+            </div>
+            {cappingData.length > 0 && (
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={cappingData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                    <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', color: 'hsl(var(--foreground))' }} />
+                    <Bar dataKey="earned" stackId="a" fill="hsl(43, 96%, 56%)" name="Earned" />
+                    <Bar dataKey="remaining" stackId="a" fill="hsl(var(--muted))" name="Remaining" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Charts */}
+      <div className="grid md:grid-cols-3 gap-4 mb-6">
+        <Card className="md:col-span-2 border-border">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-display text-foreground">Portfolio Growth</CardTitle></CardHeader>
+          <CardContent>
+            <div className="h-56">
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <defs><linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(43, 96%, 56%)" stopOpacity={0.3} /><stop offset="95%" stopColor="hsl(43, 96%, 56%)" stopOpacity={0} /></linearGradient></defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                       <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                       <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', color: 'hsl(var(--foreground))' }} />
