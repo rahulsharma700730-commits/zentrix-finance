@@ -229,7 +229,7 @@ const Dashboard = () => {
           active={section}
           onChange={setSection}
           unreadCount={unreadNotifs}
-          canInstallPwa={!!deferredPrompt && !isInstalled}
+          canInstallPwa={!isInstalled}
           onInstallPwa={handleInstallPwa}
         />
         <SidebarInset className="flex-1 min-w-0">
