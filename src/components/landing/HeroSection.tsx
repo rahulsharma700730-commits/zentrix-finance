@@ -7,7 +7,7 @@ export const HeroSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+    <section className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden py-12 sm:py-16">
       {/* Always dark background for hero */}
       <div className="absolute inset-0 bg-[#070a0f]" />
       <div className="absolute inset-0">
