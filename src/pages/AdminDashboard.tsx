@@ -821,25 +821,11 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
+        )}
 
-        {/* Tabs */}
-        <Tabs defaultValue="pending-deposits" className="space-y-6">
-          <div className="overflow-x-auto -mx-3 px-3">
-            <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-3 md:grid-cols-9">
-              <TabsTrigger value="pending-deposits" className="text-xs whitespace-nowrap">Deposits {pendingInvestments.length > 0 && <Badge className="ml-1 bg-amber-500 text-white text-[10px] px-1.5 py-0">{pendingInvestments.length}</Badge>}</TabsTrigger>
-              <TabsTrigger value="pending-withdrawals" className="text-xs whitespace-nowrap">Withdrawals {pendingWithdrawalsList.length > 0 && <Badge className="ml-1 bg-amber-500 text-white text-[10px] px-1.5 py-0">{pendingWithdrawalsList.length}</Badge>}</TabsTrigger>
-              <TabsTrigger value="users" className="text-xs whitespace-nowrap">Users</TabsTrigger>
-              <TabsTrigger value="all-investments" className="text-xs whitespace-nowrap">All Investments</TabsTrigger>
-              <TabsTrigger value="all-withdrawals" className="text-xs whitespace-nowrap">All Withdrawals</TabsTrigger>
-              <TabsTrigger value="referrals" className="text-xs whitespace-nowrap">Referrals</TabsTrigger>
-              <TabsTrigger value="notifications" className="text-xs whitespace-nowrap">Notifications</TabsTrigger>
-              <TabsTrigger value="support" className="text-xs whitespace-nowrap">Support {stats.openTickets > 0 && <Badge className="ml-1 bg-amber-500 text-white text-[10px] px-1.5 py-0">{stats.openTickets}</Badge>}</TabsTrigger>
-              <TabsTrigger value="settings" className="text-xs whitespace-nowrap">Settings</TabsTrigger>
-            </TabsList>
-          </div>
-
-          {/* Pending Deposits */}
-          <TabsContent value="pending-deposits">
+        {/* Pending Deposits */}
+        {section === 'deposits' && (
+          <div className="space-y-6">
             <Card className="border-border">
               <CardHeader><CardTitle className="text-base font-display text-foreground">Pending Deposits ({pendingInvestments.length})</CardTitle></CardHeader>
               <CardContent>
