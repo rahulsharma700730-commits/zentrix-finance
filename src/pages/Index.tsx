@@ -16,19 +16,21 @@ import { Footer } from '@/components/landing/Footer';
 const Index = () => (
   <div className="min-h-screen">
     <Navbar />
-    <HeroSection />
-    <LiveTicker />
-    <TrustBadges />
-    <HowItWorks />
-    <InvestmentPlans />
-    <ROICalculator />
-    <StatsSection />
-    <ComparisonSection />
-    <TeamSection />
-    <TestimonialsSection />
-    <FAQSection />
-    <CTABanner />
-    <Footer />
+    <main className="pt-16">
+      <HeroSection />
+      <LiveTicker />
+      <TrustBadges />
+      <HowItWorks />
+      <InvestmentPlans />
+      <ROICalculator />
+      <StatsSection />
+      <ComparisonSection />
+      <TeamSection />
+      <TestimonialsSection />
+      <FAQSection />
+      <CTABanner />
+      <Footer />
+    </main>
   </div>
 );
 
