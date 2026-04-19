@@ -44,6 +44,7 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
   const [section, setSection] = useState<DashboardSection>('overview');
 
   const [depositAmount, setDepositAmount] = useState('');
@@ -64,16 +65,25 @@ const Dashboard = () => {
   }, [user]);
 
   useEffect(() => {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as any).standalone === true;
+    setIsInstalled(standalone);
+
     const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
+    const installed = () => { setIsInstalled(true); setDeferredPrompt(null); };
     window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', installed);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installed);
+    };
   }, []);
 
   const handleInstallPwa = async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') toast.success('App installed!');
+      if (outcome === 'accepted') { toast.success('App installed!'); setIsInstalled(true); }
       setDeferredPrompt(null);
     } else {
       toast.info('To install: open browser menu → "Add to Home Screen"');
