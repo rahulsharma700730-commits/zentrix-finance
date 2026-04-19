@@ -98,6 +98,23 @@ const AdminDashboard = () => {
   const [holdReason, setHoldReason] = useState('');
   const [customHoldReason, setCustomHoldReason] = useState('');
 
+  // Sidebar section + PWA install
+  const [section, setSection] = useState<AdminSection>('overview');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallPwa = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+  };
+
   useEffect(() => {
     if (!isLoading && (!user || !isAdmin)) navigate('/');
   }, [user, isAdmin, isLoading, navigate]);
