@@ -729,7 +729,7 @@ const AdminDashboard = () => {
           pendingDeposits={stats.pendingDeposits}
           pendingWithdrawals={stats.pendingWithdrawals}
           openTickets={stats.openTickets}
-          canInstallPwa={!!deferredPrompt}
+          canInstallPwa={!!deferredPrompt && !isInstalled}
           onInstallPwa={handleInstallPwa}
         />
         <SidebarInset className="flex-1 min-w-0">
