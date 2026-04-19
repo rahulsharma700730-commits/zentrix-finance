@@ -855,10 +855,12 @@ const AdminDashboard = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Pending Withdrawals */}
-          <TabsContent value="pending-withdrawals">
+        {/* Pending Withdrawals */}
+        {section === 'withdrawals' && (
+          <div className="space-y-6">
             <Card className="border-border">
               <CardHeader><CardTitle className="text-base font-display text-foreground">Pending Withdrawals ({pendingWithdrawalsList.length})</CardTitle></CardHeader>
               <CardContent>
@@ -891,10 +893,12 @@ const AdminDashboard = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Users */}
-          <TabsContent value="users">
+        {/* Users */}
+        {section === 'users' && (
+          <div className="space-y-6">
             <Card className="border-border">
               <CardHeader><CardTitle className="text-base font-display text-foreground">All Users ({users.length})</CardTitle></CardHeader>
               <CardContent><div className="overflow-x-auto">
@@ -951,10 +955,12 @@ const AdminDashboard = () => {
                 </tbody></table>
               </div></CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* All Investments */}
-          <TabsContent value="all-investments">
+        {/* All Investments */}
+        {section === 'all-investments' && (
+          <div className="space-y-6">
             <Card className="border-border">
               <CardHeader>
                 <CardTitle className="text-base font-display text-foreground">All Investments ({filteredInvestments.length})</CardTitle>
@@ -1006,10 +1012,12 @@ const AdminDashboard = () => {
                 </tbody></table>
               </div></CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* All Withdrawals */}
-          <TabsContent value="all-withdrawals">
+        {/* All Withdrawals */}
+        {section === 'all-withdrawals' && (
+          <div className="space-y-6">
             <Card className="border-border">
               <CardHeader><CardTitle className="text-base font-display text-foreground">All Withdrawals ({allWithdrawals.length})</CardTitle></CardHeader>
               <CardContent><div className="overflow-x-auto">
@@ -1049,10 +1057,12 @@ const AdminDashboard = () => {
                 </tbody></table>
               </div></CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Referrals */}
-          <TabsContent value="referrals">
+        {/* Referrals */}
+        {section === 'referrals' && (
+          <div className="space-y-6">
             <Card className="border-border">
               <CardHeader><CardTitle className="text-base font-display text-foreground">Referral Overview</CardTitle></CardHeader>
               <CardContent>
@@ -1099,10 +1109,12 @@ const AdminDashboard = () => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Notifications */}
-          <TabsContent value="notifications">
+        {/* Notifications */}
+        {section === 'notifications' && (
+          <div className="space-y-6">
             <Card className="border-border max-w-2xl">
               <CardHeader><CardTitle className="text-base font-display text-foreground flex items-center gap-2"><Bell className="w-4 h-4" /> Send Notification</CardTitle></CardHeader>
               <CardContent className="space-y-4">
@@ -1126,10 +1138,12 @@ const AdminDashboard = () => {
                 </Button>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Support Tickets */}
-          <TabsContent value="support">
+        {/* Support Tickets */}
+        {section === 'support' && (
+          <div className="space-y-6">
             <Card className="border-border">
               <CardHeader><CardTitle className="text-base font-display text-foreground">Support Tickets ({allTickets.length})</CardTitle></CardHeader>
               <CardContent>
@@ -1171,10 +1185,12 @@ const AdminDashboard = () => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Settings */}
-          <TabsContent value="settings">
+        {/* Settings */}
+        {section === 'settings' && (
+          <div className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="border-border">
                 <CardHeader><CardTitle className="text-base font-display text-foreground flex items-center gap-2"><Settings className="w-4 h-4" /> Site Settings</CardTitle></CardHeader>
@@ -1207,10 +1223,13 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
+
+          </main>
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
