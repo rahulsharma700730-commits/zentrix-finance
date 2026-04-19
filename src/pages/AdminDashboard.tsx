@@ -757,7 +757,8 @@ const AdminDashboard = () => {
 
         {/* Stats — overview only */}
         {section === 'overview' && (
-          {[
+          <div className="grid grid-cols-2 lg:grid-cols-7 gap-2 sm:gap-3 mb-8">
+            {[
             { icon: DollarSign, label: 'Total Invested', value: `$${stats.totalInvested.toFixed(0)}`, color: 'text-amber-600 dark:text-amber-400' },
             { icon: Users, label: 'Total Users', value: users.length, color: 'text-foreground' },
             { icon: UserCheck, label: 'Active Users', value: stats.activeUsers, color: 'text-emerald-600 dark:text-emerald-400' },
