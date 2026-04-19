@@ -775,9 +775,11 @@ const AdminDashboard = () => {
               <div className={`text-lg sm:text-xl font-display font-bold ${item.color}`}>{item.value}</div>
             </CardContent></Card>
           ))}
-        </div>
+          </div>
+        )}
 
-        {/* Charts */}
+        {/* Charts — overview only */}
+        {section === 'overview' && (
         <div className="grid md:grid-cols-2 gap-4 mb-8">
           <Card className="border-border">
             <CardHeader className="pb-2"><CardTitle className="text-sm font-display text-foreground">Investment Trend</CardTitle></CardHeader>
