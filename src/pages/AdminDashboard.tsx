@@ -693,34 +693,70 @@ const AdminDashboard = () => {
   }
 
   // MAIN ADMIN DASHBOARD
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      {rejectionDialog}
-      {holdDialog}
-      <div className="container mx-auto px-3 sm:px-4 pt-20 pb-12">
-        <div className="mb-8 p-4 sm:p-6 rounded-2xl bg-[#070a0f] border border-white/10">
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div className="flex items-center gap-3 min-w-0">
-              <Shield className="w-6 sm:w-7 h-6 sm:h-7 text-[hsl(43,96%,56%)] shrink-0" />
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-white truncate">
-                Admin <span className="text-gradient-gold">Control Panel</span>
-              </h1>
-            </div>
-            <AdminNotificationBell
-              pendingDeposits={stats.pendingDeposits}
-              pendingWithdrawals={stats.pendingWithdrawals}
-              openTickets={stats.openTickets}
-              recentRejections={allWithdrawals.filter(w => w.status === 'pending' && w.rejection_reason)}
-              recentInvestments={allInvestments.slice(0, 5)}
-              getUserName={getUserName}
-            />
-          </div>
-          <p className="text-white/50 text-xs sm:text-sm">Full system management • Investments • Withdrawals • Users • Support</p>
-        </div>
+  const sectionTitle: Record<AdminSection, string> = {
+    overview: 'Overview',
+    deposits: 'Pending Deposits',
+    withdrawals: 'Pending Withdrawals',
+    users: 'Users',
+    'all-investments': 'All Investments',
+    'all-withdrawals': 'All Withdrawals',
+    referrals: 'Referrals',
+    notifications: 'Send Alerts',
+    support: 'Support Tickets',
+    settings: 'Site Settings',
+  };
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-7 gap-2 sm:gap-3 mb-8">
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AdminSidebar
+          active={section}
+          onChange={setSection}
+          pendingDeposits={stats.pendingDeposits}
+          pendingWithdrawals={stats.pendingWithdrawals}
+          openTickets={stats.openTickets}
+          canInstallPwa={!!deferredPrompt}
+          onInstallPwa={handleInstallPwa}
+        />
+        <SidebarInset className="flex-1 min-w-0">
+          <header className="sticky top-0 z-30 h-14 flex items-center justify-between gap-2 px-3 sm:px-5 border-b border-border bg-background/80 backdrop-blur-md">
+            <div className="flex items-center gap-2 min-w-0">
+              <SidebarTrigger />
+              <Link to="/" className="flex items-center gap-2 min-w-0">
+                <Shield className="w-5 h-5 text-amber-500 shrink-0" />
+                <span className="font-display font-bold text-sm sm:text-base text-gradient-gold truncate">
+                  {sectionTitle[section]}
+                </span>
+              </Link>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <AdminNotificationBell
+                pendingDeposits={stats.pendingDeposits}
+                pendingWithdrawals={stats.pendingWithdrawals}
+                openTickets={stats.openTickets}
+                recentRejections={allWithdrawals.filter(w => w.status === 'pending' && w.rejection_reason)}
+                recentInvestments={allInvestments.slice(0, 5)}
+                getUserName={getUserName}
+              />
+              <ThemeToggle />
+            </div>
+          </header>
+          {rejectionDialog}
+          {holdDialog}
+          <main className="p-3 sm:p-5 pb-20">
+
+        {/* Overview header strip */}
+        {section === 'overview' && (
+          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-gold-subtle border border-primary/20">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-display font-bold text-foreground">
+              Admin <span className="text-amber-700 dark:text-amber-400">Control Panel</span>
+            </h1>
+            <p className="text-muted-foreground text-xs mt-0.5">Full system management • Investments • Withdrawals • Users • Support</p>
+          </div>
+        )}
+
+        {/* Stats — overview only */}
+        {section === 'overview' && (
           {[
             { icon: DollarSign, label: 'Total Invested', value: `$${stats.totalInvested.toFixed(0)}`, color: 'text-amber-600 dark:text-amber-400' },
             { icon: Users, label: 'Total Users', value: users.length, color: 'text-foreground' },
