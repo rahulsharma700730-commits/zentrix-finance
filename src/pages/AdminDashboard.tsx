@@ -101,17 +101,31 @@ const AdminDashboard = () => {
   // Sidebar section + PWA install
   const [section, setSection] = useState<AdminSection>('overview');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as any).standalone === true;
+    setIsInstalled(standalone);
+
     const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
+    const installed = () => { setIsInstalled(true); setDeferredPrompt(null); };
     window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', installed);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installed);
+    };
   }, []);
 
   const handleInstallPwa = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      toast.info('To install: open browser menu → "Add to Home Screen"');
+      return;
+    }
     deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') { toast.success('App installed!'); setIsInstalled(true); }
     setDeferredPrompt(null);
   };
 
@@ -715,7 +729,7 @@ const AdminDashboard = () => {
           pendingDeposits={stats.pendingDeposits}
           pendingWithdrawals={stats.pendingWithdrawals}
           openTickets={stats.openTickets}
-          canInstallPwa={!!deferredPrompt}
+          canInstallPwa={!!deferredPrompt && !isInstalled}
           onInstallPwa={handleInstallPwa}
         />
         <SidebarInset className="flex-1 min-w-0">
