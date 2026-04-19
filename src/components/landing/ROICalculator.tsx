@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DollarSign, Calendar, TrendingUp, Percent, BarChart3 } from 'lucide-react';
 
 export const ROICalculator = () => {
-  const [amount, setAmount] = useState(1000);
+  const [amountInput, setAmountInput] = useState('1000');
+  const amount = amountInput === '' ? 0 : Math.max(0, Number(amountInput) || 0);
 
   const totalReturn = amount * 2;
   const dailyReturn = totalReturn / 600;
@@ -44,8 +45,8 @@ export const ROICalculator = () => {
                   <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-primary w-6 h-6" />
                   <Input
                     type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(Math.max(0, Number(e.target.value)))}
+                    value={amountInput}
+                    onChange={(e) => setAmountInput(e.target.value)}
                     className="pl-12 text-3xl font-bold text-center h-16 border-primary/20 focus:border-primary bg-background"
                     min={0}
                   />
