@@ -614,7 +614,7 @@ const AdminDashboard = () => {
                 </div>
               </div>
               <div className="flex gap-2 flex-wrap">
-                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => toggleBlockUser(selectedUser.id, selectedUser.is_blocked)}>
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openBlockDialog(selectedUser)}>
                   {selectedUser.is_blocked ? <><Unlock className="w-3 h-3 mr-1" /> Unblock</> : <><Ban className="w-3 h-3 mr-1" /> Block</>}
                 </Button>
                 <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { setChangingWalletUserId(selectedUser.user_id); setNewWallet(selectedUser.wallet_address || ''); }}>
@@ -1022,7 +1022,7 @@ const AdminDashboard = () => {
                             <Button size="sm" variant="outline" className="text-[10px] h-7 px-2" onClick={() => viewUserPortfolio(u)}>
                               <Eye className="w-3 h-3" />
                             </Button>
-                            <Button size="sm" variant="outline" className="text-[10px] h-7 px-2" onClick={() => toggleBlockUser(u.id, u.is_blocked)}>
+                            <Button size="sm" variant="outline" className="text-[10px] h-7 px-2" onClick={() => openBlockDialog(u)}>
                               {u.is_blocked ? <Unlock className="w-3 h-3" /> : <Ban className="w-3 h-3" />}
                             </Button>
                           </div>
@@ -1277,7 +1277,7 @@ const AdminDashboard = () => {
                     <Label className="text-foreground">USDT Deposit Address (BEP20)</Label>
                     <Input value={usdtAddress} onChange={e => setUsdtAddress(e.target.value)} placeholder="BEP20 USDT address" className="bg-background font-mono text-sm" />
                   </div>
-                  <Button className="bg-gradient-gold text-primary-foreground hover:opacity-90 font-semibold shadow-gold h-10" onClick={updateSettings}>Save Address</Button>
+                  <Button className="bg-gradient-gold text-primary-foreground hover:opacity-90 font-semibold shadow-gold h-10" onClick={() => setConfirmSaveUsdt(true)}><Save className="w-4 h-4 mr-2" /> Save Address</Button>
                 </CardContent>
               </Card>
 
