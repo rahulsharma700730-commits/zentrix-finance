@@ -11,8 +11,12 @@ import { toast } from 'sonner';
 import {
   Users, DollarSign, TrendingUp, AlertTriangle, CheckCircle, XCircle,
   Ban, Unlock, Eye, ArrowLeft, Shield, Settings, BarChart3, UserCheck, Link2,
-  Bell, MessageSquare, Upload, Image as ImageIcon, Send, Key, Copy, Wallet, PauseCircle, PlayCircle
+  Bell, MessageSquare, Upload, Image as ImageIcon, Send, Key, Copy, Wallet, PauseCircle, PlayCircle, Save
 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
@@ -97,6 +101,13 @@ const AdminDashboard = () => {
   const [holdingWdId, setHoldingWdId] = useState<string | null>(null);
   const [holdReason, setHoldReason] = useState('');
   const [customHoldReason, setCustomHoldReason] = useState('');
+
+  // Block / Unblock dialog
+  const [blockingUser, setBlockingUser] = useState<any | null>(null);
+  const [blockReason, setBlockReason] = useState('');
+
+  // USDT save confirmation
+  const [confirmSaveUsdt, setConfirmSaveUsdt] = useState(false);
 
   // Sidebar section + PWA install
   const [section, setSection] = useState<AdminSection>('overview');
