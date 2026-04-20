@@ -883,6 +883,8 @@ const AdminDashboard = () => {
           </header>
           {rejectionDialog}
           {holdDialog}
+          {blockDialog}
+          {usdtConfirmDialog}
           <main className="p-3 sm:p-5 pb-20">
 
         {/* Overview header strip */}
