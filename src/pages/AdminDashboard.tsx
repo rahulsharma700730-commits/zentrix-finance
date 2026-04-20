@@ -952,9 +952,17 @@ const AdminDashboard = () => {
               <div className="h-52">
                 {statusPieData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart><Pie data={statusPieData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value">
-                      {statusPieData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                    </Pie><Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', color: 'hsl(var(--foreground))' }} /></PieChart>
+                    <PieChart>
+                      <Pie data={statusPieData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value">
+                        {statusPieData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
+                        labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                        itemStyle={{ color: 'hsl(var(--foreground))' }}
+                        formatter={(v: any, n: any) => [Number(v).toFixed(0), n]}
+                      />
+                    </PieChart>
                   </ResponsiveContainer>
                 ) : <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No data yet</div>}
                 <div className="flex flex-wrap gap-3 justify-center mt-1">
