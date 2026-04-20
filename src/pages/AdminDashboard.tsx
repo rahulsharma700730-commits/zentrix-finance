@@ -574,6 +574,66 @@ const AdminDashboard = () => {
     </div>
   );
 
+  // BLOCK / UNBLOCK DIALOG
+  const blockDialog = (
+    <AlertDialog open={!!blockingUser} onOpenChange={(o) => { if (!o) { setBlockingUser(null); setBlockReason(''); } }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-display">
+            {blockingUser?.is_blocked ? 'Unblock User?' : 'Block User?'}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {blockingUser?.is_blocked
+              ? `Are you sure you want to unblock ${blockingUser?.full_name || 'this user'}? They will regain full access to their account.`
+              : `Are you sure you want to block ${blockingUser?.full_name || 'this user'}? They will not be able to log in or transact. Please provide a reason.`}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {!blockingUser?.is_blocked && (
+          <div className="space-y-2">
+            <Label className="text-foreground">Reason for blocking <span className="text-destructive">*</span></Label>
+            <textarea
+              value={blockReason}
+              onChange={e => setBlockReason(e.target.value)}
+              placeholder="e.g. Suspicious activity, fraud detected, account violation..."
+              className="w-full p-3 rounded-md border border-input bg-background text-foreground text-sm min-h-[80px] resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <p className="text-[11px] text-muted-foreground">The user will be notified with this reason.</p>
+          </div>
+        )}
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={confirmBlockAction}
+            className={blockingUser?.is_blocked ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'}
+          >
+            {blockingUser?.is_blocked ? 'Unblock' : 'Block User'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
+  // USDT SAVE CONFIRMATION
+  const usdtConfirmDialog = (
+    <AlertDialog open={confirmSaveUsdt} onOpenChange={setConfirmSaveUsdt}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-display">Save USDT Deposit Address?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Confirm the USDT BEP20 address users will deposit to. Funds sent to a wrong address can be lost.
+            <span className="block mt-2 p-2 rounded bg-muted font-mono text-xs break-all text-foreground">
+              {usdtAddress || '(empty)'}
+            </span>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={updateSettings} className="bg-gradient-gold text-primary-foreground">Confirm & Save</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
   // USER PORTFOLIO VIEW
   if (selectedUser) {
     const uTotalInvested = selectedUserInvestments.filter(i => i.status === 'confirmed').reduce((s, i) => s + Number(i.amount), 0);
@@ -589,6 +649,8 @@ const AdminDashboard = () => {
       <div className="min-h-screen bg-background">
         {rejectionDialog}
         {holdDialog}
+        {blockDialog}
+        {usdtConfirmDialog}
         <div className="container mx-auto px-3 sm:px-4 pt-4 pb-12">
           <Button variant="ghost" className="mb-4 text-muted-foreground" onClick={() => setSelectedUser(null)}>
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Admin
