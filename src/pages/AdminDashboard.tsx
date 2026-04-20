@@ -207,12 +207,18 @@ const AdminDashboard = () => {
   }), [allInvestments]);
 
   const investmentByMonth = useMemo(() => {
-    const months: Record<string, number> = {};
+    const months: Record<string, { amount: number; sortKey: string }> = {};
     allInvestments.filter(i => i.status === 'confirmed').forEach(inv => {
-      const month = new Date(inv.created_at).toLocaleDateString('en-US', { year: '2-digit', month: 'short' });
-      months[month] = (months[month] || 0) + Number(inv.amount);
+      const d = new Date(inv.created_at);
+      const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const month = d.toLocaleDateString('en-US', { year: '2-digit', month: 'short' });
+      if (!months[month]) months[month] = { amount: 0, sortKey };
+      months[month].amount += Number(inv.amount);
     });
-    return Object.entries(months).slice(-12).map(([month, amount]) => ({ month, amount }));
+    return Object.entries(months)
+      .sort((a, b) => a[1].sortKey.localeCompare(b[1].sortKey))
+      .slice(-12)
+      .map(([month, v]) => ({ month, amount: v.amount }));
   }, [allInvestments]);
 
   const statusPieData = useMemo(() => [
@@ -337,9 +343,39 @@ const AdminDashboard = () => {
     }
   };
 
-  const toggleBlockUser = async (profileId: string, currentBlocked: boolean) => {
-    const { error } = await supabase.from('profiles').update({ is_blocked: !currentBlocked }).eq('id', profileId);
-    if (error) toast.error(error.message); else { toast.success(currentBlocked ? 'User unblocked' : 'User blocked'); fetchAll(); }
+  // Open block dialog (unblock is one-click confirm; block requires reason)
+  const openBlockDialog = (u: any) => {
+    setBlockingUser(u);
+    setBlockReason('');
+  };
+
+  const confirmBlockAction = async () => {
+    if (!blockingUser) return;
+    const willBlock = !blockingUser.is_blocked;
+    if (willBlock && !blockReason.trim()) { toast.error('Please provide a block reason'); return; }
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        is_blocked: willBlock,
+        block_reason: willBlock ? blockReason.trim() : null,
+      })
+      .eq('id', blockingUser.id);
+    if (error) { toast.error(error.message); return; }
+    // Notify the user
+    await supabase.from('notifications').insert({
+      user_id: blockingUser.user_id,
+      title: willBlock ? 'Account Blocked' : 'Account Unblocked',
+      message: willBlock
+        ? `Your account has been blocked. Reason: ${blockReason.trim()}`
+        : 'Your account has been unblocked. You can now use all features.',
+    });
+    toast.success(willBlock ? 'User blocked' : 'User unblocked');
+    setBlockingUser(null);
+    setBlockReason('');
+    if (selectedUser && selectedUser.id === blockingUser.id) {
+      setSelectedUser({ ...selectedUser, is_blocked: willBlock, block_reason: willBlock ? blockReason.trim() : null });
+    }
+    fetchAll();
   };
 
   const handleChangePassword = async () => {
@@ -429,11 +465,13 @@ const AdminDashboard = () => {
   const updateSettings = async () => {
     if (!siteSettings) {
       const { error } = await supabase.from('site_settings').insert({ usdt_address: usdtAddress });
-      if (error) toast.error(error.message); else toast.success('Settings saved!');
+      if (error) toast.error(error.message); else toast.success('USDT address saved!');
     } else {
       const { error } = await supabase.from('site_settings').update({ usdt_address: usdtAddress }).eq('id', siteSettings.id);
-      if (error) toast.error(error.message); else toast.success('Settings updated!');
+      if (error) toast.error(error.message); else toast.success('USDT address updated!');
     }
+    setConfirmSaveUsdt(false);
+    fetchAll();
   };
 
   const viewUserPortfolio = async (u: any) => {
