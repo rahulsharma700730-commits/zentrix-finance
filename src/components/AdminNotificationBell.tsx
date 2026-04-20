@@ -53,12 +53,12 @@ export const AdminNotificationBell = ({
     <div className="relative shrink-0" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+        className="relative p-2 rounded-xl bg-muted hover:bg-muted/70 border border-border transition-colors"
         aria-label="Notifications"
       >
-        <Bell className="w-5 h-5 text-white" />
+        <Bell className="w-5 h-5 text-foreground" />
         {total > 0 && (
-          <Badge className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1 bg-red-500 hover:bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-[#070a0f]">
+          <Badge className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1 bg-destructive hover:bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-background">
             {total > 9 ? '9+' : total}
           </Badge>
         )}
