@@ -123,6 +123,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          block_reason: string | null
           created_at: string
           email: string
           full_name: string
@@ -135,6 +136,7 @@ export type Database = {
           wallet_address: string | null
         }
         Insert: {
+          block_reason?: string | null
           created_at?: string
           email?: string
           full_name?: string
@@ -147,6 +149,7 @@ export type Database = {
           wallet_address?: string | null
         }
         Update: {
+          block_reason?: string | null
           created_at?: string
           email?: string
           full_name?: string
