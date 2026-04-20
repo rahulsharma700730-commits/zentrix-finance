@@ -354,7 +354,12 @@ const Dashboard = () => {
                               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                               <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                               <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                              <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', color: 'hsl(var(--foreground))' }} />
+                              <Tooltip
+                                contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
+                                labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                                itemStyle={{ color: 'hsl(var(--foreground))' }}
+                                formatter={(v: any) => [`$${Number(v).toFixed(3)}`, '']}
+                              />
                               <Bar dataKey="earned" stackId="a" fill="hsl(43, 96%, 56%)" name="Earned" />
                               <Bar dataKey="remaining" stackId="a" fill="hsl(var(--muted))" name="Remaining" radius={[4, 4, 0, 0]} />
                             </BarChart>
@@ -377,7 +382,12 @@ const Dashboard = () => {
                               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                               <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                               <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                              <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', color: 'hsl(var(--foreground))' }} />
+                              <Tooltip
+                                contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
+                                labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                                itemStyle={{ color: 'hsl(var(--foreground))' }}
+                                formatter={(v: any, n: any) => [`$${Number(v).toFixed(3)}`, n]}
+                              />
                               <Area type="monotone" dataKey="total" stroke="hsl(43, 96%, 56%)" fill="url(#goldGrad)" strokeWidth={2} name="Total Earned" />
                             </AreaChart>
                           </ResponsiveContainer>
@@ -391,9 +401,17 @@ const Dashboard = () => {
                       <div className="h-56">
                         {pieData.length > 0 ? (
                           <ResponsiveContainer width="100%" height="100%">
-                            <PieChart><Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
-                              {pieData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                            </Pie><Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', color: 'hsl(var(--foreground))' }} /></PieChart>
+                            <PieChart>
+                              <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value">
+                                {pieData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                              </Pie>
+                              <Tooltip
+                                contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
+                                labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                                itemStyle={{ color: 'hsl(var(--foreground))' }}
+                                formatter={(v: any, n: any) => [`$${Number(v).toFixed(3)}`, n]}
+                              />
+                            </PieChart>
                           </ResponsiveContainer>
                         ) : <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No data yet</div>}
                         <div className="flex flex-wrap gap-3 justify-center mt-2">
