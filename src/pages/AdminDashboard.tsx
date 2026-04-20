@@ -11,8 +11,12 @@ import { toast } from 'sonner';
 import {
   Users, DollarSign, TrendingUp, AlertTriangle, CheckCircle, XCircle,
   Ban, Unlock, Eye, ArrowLeft, Shield, Settings, BarChart3, UserCheck, Link2,
-  Bell, MessageSquare, Upload, Image as ImageIcon, Send, Key, Copy, Wallet, PauseCircle, PlayCircle
+  Bell, MessageSquare, Upload, Image as ImageIcon, Send, Key, Copy, Wallet, PauseCircle, PlayCircle, Save
 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
@@ -98,6 +102,13 @@ const AdminDashboard = () => {
   const [holdReason, setHoldReason] = useState('');
   const [customHoldReason, setCustomHoldReason] = useState('');
 
+  // Block / Unblock dialog
+  const [blockingUser, setBlockingUser] = useState<any | null>(null);
+  const [blockReason, setBlockReason] = useState('');
+
+  // USDT save confirmation
+  const [confirmSaveUsdt, setConfirmSaveUsdt] = useState(false);
+
   // Sidebar section + PWA install
   const [section, setSection] = useState<AdminSection>('overview');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -155,6 +166,21 @@ const AdminDashboard = () => {
     setAllTickets(ticketsRes.data || []);
   };
 
+  // Realtime subscriptions — push live updates to admin dashboard
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+    const channel = supabase
+      .channel('admin-dashboard-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'investments' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'referral_commissions' }, () => fetchAll())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isAdmin]);
+
   const stats = useMemo(() => {
     const confirmedInv = allInvestments.filter(i => i.status === 'confirmed');
     return {
@@ -181,12 +207,18 @@ const AdminDashboard = () => {
   }), [allInvestments]);
 
   const investmentByMonth = useMemo(() => {
-    const months: Record<string, number> = {};
+    const months: Record<string, { amount: number; sortKey: string }> = {};
     allInvestments.filter(i => i.status === 'confirmed').forEach(inv => {
-      const month = new Date(inv.created_at).toLocaleDateString('en-US', { year: '2-digit', month: 'short' });
-      months[month] = (months[month] || 0) + Number(inv.amount);
+      const d = new Date(inv.created_at);
+      const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const month = d.toLocaleDateString('en-US', { year: '2-digit', month: 'short' });
+      if (!months[month]) months[month] = { amount: 0, sortKey };
+      months[month].amount += Number(inv.amount);
     });
-    return Object.entries(months).slice(-12).map(([month, amount]) => ({ month, amount }));
+    return Object.entries(months)
+      .sort((a, b) => a[1].sortKey.localeCompare(b[1].sortKey))
+      .slice(-12)
+      .map(([month, v]) => ({ month, amount: v.amount }));
   }, [allInvestments]);
 
   const statusPieData = useMemo(() => [
@@ -311,9 +343,39 @@ const AdminDashboard = () => {
     }
   };
 
-  const toggleBlockUser = async (profileId: string, currentBlocked: boolean) => {
-    const { error } = await supabase.from('profiles').update({ is_blocked: !currentBlocked }).eq('id', profileId);
-    if (error) toast.error(error.message); else { toast.success(currentBlocked ? 'User unblocked' : 'User blocked'); fetchAll(); }
+  // Open block dialog (unblock is one-click confirm; block requires reason)
+  const openBlockDialog = (u: any) => {
+    setBlockingUser(u);
+    setBlockReason('');
+  };
+
+  const confirmBlockAction = async () => {
+    if (!blockingUser) return;
+    const willBlock = !blockingUser.is_blocked;
+    if (willBlock && !blockReason.trim()) { toast.error('Please provide a block reason'); return; }
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        is_blocked: willBlock,
+        block_reason: willBlock ? blockReason.trim() : null,
+      })
+      .eq('id', blockingUser.id);
+    if (error) { toast.error(error.message); return; }
+    // Notify the user
+    await supabase.from('notifications').insert({
+      user_id: blockingUser.user_id,
+      title: willBlock ? 'Account Blocked' : 'Account Unblocked',
+      message: willBlock
+        ? `Your account has been blocked. Reason: ${blockReason.trim()}`
+        : 'Your account has been unblocked. You can now use all features.',
+    });
+    toast.success(willBlock ? 'User blocked' : 'User unblocked');
+    setBlockingUser(null);
+    setBlockReason('');
+    if (selectedUser && selectedUser.id === blockingUser.id) {
+      setSelectedUser({ ...selectedUser, is_blocked: willBlock, block_reason: willBlock ? blockReason.trim() : null });
+    }
+    fetchAll();
   };
 
   const handleChangePassword = async () => {
@@ -403,11 +465,13 @@ const AdminDashboard = () => {
   const updateSettings = async () => {
     if (!siteSettings) {
       const { error } = await supabase.from('site_settings').insert({ usdt_address: usdtAddress });
-      if (error) toast.error(error.message); else toast.success('Settings saved!');
+      if (error) toast.error(error.message); else toast.success('USDT address saved!');
     } else {
       const { error } = await supabase.from('site_settings').update({ usdt_address: usdtAddress }).eq('id', siteSettings.id);
-      if (error) toast.error(error.message); else toast.success('Settings updated!');
+      if (error) toast.error(error.message); else toast.success('USDT address updated!');
     }
+    setConfirmSaveUsdt(false);
+    fetchAll();
   };
 
   const viewUserPortfolio = async (u: any) => {
@@ -510,6 +574,66 @@ const AdminDashboard = () => {
     </div>
   );
 
+  // BLOCK / UNBLOCK DIALOG
+  const blockDialog = (
+    <AlertDialog open={!!blockingUser} onOpenChange={(o) => { if (!o) { setBlockingUser(null); setBlockReason(''); } }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-display">
+            {blockingUser?.is_blocked ? 'Unblock User?' : 'Block User?'}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {blockingUser?.is_blocked
+              ? `Are you sure you want to unblock ${blockingUser?.full_name || 'this user'}? They will regain full access to their account.`
+              : `Are you sure you want to block ${blockingUser?.full_name || 'this user'}? They will not be able to log in or transact. Please provide a reason.`}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {!blockingUser?.is_blocked && (
+          <div className="space-y-2">
+            <Label className="text-foreground">Reason for blocking <span className="text-destructive">*</span></Label>
+            <textarea
+              value={blockReason}
+              onChange={e => setBlockReason(e.target.value)}
+              placeholder="e.g. Suspicious activity, fraud detected, account violation..."
+              className="w-full p-3 rounded-md border border-input bg-background text-foreground text-sm min-h-[80px] resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <p className="text-[11px] text-muted-foreground">The user will be notified with this reason.</p>
+          </div>
+        )}
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={confirmBlockAction}
+            className={blockingUser?.is_blocked ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'}
+          >
+            {blockingUser?.is_blocked ? 'Unblock' : 'Block User'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
+  // USDT SAVE CONFIRMATION
+  const usdtConfirmDialog = (
+    <AlertDialog open={confirmSaveUsdt} onOpenChange={setConfirmSaveUsdt}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-display">Save USDT Deposit Address?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Confirm the USDT BEP20 address users will deposit to. Funds sent to a wrong address can be lost.
+            <span className="block mt-2 p-2 rounded bg-muted font-mono text-xs break-all text-foreground">
+              {usdtAddress || '(empty)'}
+            </span>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={updateSettings} className="bg-gradient-gold text-primary-foreground">Confirm & Save</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
   // USER PORTFOLIO VIEW
   if (selectedUser) {
     const uTotalInvested = selectedUserInvestments.filter(i => i.status === 'confirmed').reduce((s, i) => s + Number(i.amount), 0);
@@ -525,6 +649,8 @@ const AdminDashboard = () => {
       <div className="min-h-screen bg-background">
         {rejectionDialog}
         {holdDialog}
+        {blockDialog}
+        {usdtConfirmDialog}
         <div className="container mx-auto px-3 sm:px-4 pt-4 pb-12">
           <Button variant="ghost" className="mb-4 text-muted-foreground" onClick={() => setSelectedUser(null)}>
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Admin
@@ -550,7 +676,7 @@ const AdminDashboard = () => {
                 </div>
               </div>
               <div className="flex gap-2 flex-wrap">
-                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => toggleBlockUser(selectedUser.id, selectedUser.is_blocked)}>
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openBlockDialog(selectedUser)}>
                   {selectedUser.is_blocked ? <><Unlock className="w-3 h-3 mr-1" /> Unblock</> : <><Ban className="w-3 h-3 mr-1" /> Block</>}
                 </Button>
                 <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { setChangingWalletUserId(selectedUser.user_id); setNewWallet(selectedUser.wallet_address || ''); }}>
@@ -757,6 +883,8 @@ const AdminDashboard = () => {
           </header>
           {rejectionDialog}
           {holdDialog}
+          {blockDialog}
+          {usdtConfirmDialog}
           <main className="p-3 sm:p-5 pb-20">
 
         {/* Overview header strip */}
@@ -958,7 +1086,7 @@ const AdminDashboard = () => {
                             <Button size="sm" variant="outline" className="text-[10px] h-7 px-2" onClick={() => viewUserPortfolio(u)}>
                               <Eye className="w-3 h-3" />
                             </Button>
-                            <Button size="sm" variant="outline" className="text-[10px] h-7 px-2" onClick={() => toggleBlockUser(u.id, u.is_blocked)}>
+                            <Button size="sm" variant="outline" className="text-[10px] h-7 px-2" onClick={() => openBlockDialog(u)}>
                               {u.is_blocked ? <Unlock className="w-3 h-3" /> : <Ban className="w-3 h-3" />}
                             </Button>
                           </div>
@@ -1213,7 +1341,7 @@ const AdminDashboard = () => {
                     <Label className="text-foreground">USDT Deposit Address (BEP20)</Label>
                     <Input value={usdtAddress} onChange={e => setUsdtAddress(e.target.value)} placeholder="BEP20 USDT address" className="bg-background font-mono text-sm" />
                   </div>
-                  <Button className="bg-gradient-gold text-primary-foreground hover:opacity-90 font-semibold shadow-gold h-10" onClick={updateSettings}>Save Address</Button>
+                  <Button className="bg-gradient-gold text-primary-foreground hover:opacity-90 font-semibold shadow-gold h-10" onClick={() => setConfirmSaveUsdt(true)}><Save className="w-4 h-4 mr-2" /> Save Address</Button>
                 </CardContent>
               </Card>
 
