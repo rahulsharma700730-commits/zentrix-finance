@@ -382,7 +382,12 @@ const Dashboard = () => {
                               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                               <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                               <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                              <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', color: 'hsl(var(--foreground))' }} />
+                              <Tooltip
+                                contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
+                                labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                                itemStyle={{ color: 'hsl(var(--foreground))' }}
+                                formatter={(v: any, n: any) => [`$${Number(v).toFixed(3)}`, n]}
+                              />
                               <Area type="monotone" dataKey="total" stroke="hsl(43, 96%, 56%)" fill="url(#goldGrad)" strokeWidth={2} name="Total Earned" />
                             </AreaChart>
                           </ResponsiveContainer>
