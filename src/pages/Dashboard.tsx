@@ -64,6 +64,23 @@ const Dashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Realtime — refresh dashboard data when investments, withdrawals, profiles, etc. change
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`investor-rt-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'investments', filter: `user_id=eq.${user.id}` }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals', filter: `user_id=eq.${user.id}` }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_earnings', filter: `user_id=eq.${user.id}` }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets', filter: `user_id=eq.${user.id}` }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'referral_commissions', filter: `referrer_id=eq.${user.id}` }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `referred_by=eq.${user.id}` }, () => fetchData())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   useEffect(() => {
     const standalone = window.matchMedia('(display-mode: standalone)').matches
       || (window.navigator as any).standalone === true;
@@ -140,7 +157,9 @@ const Dashboard = () => {
     const grouped: Record<string, number> = {};
     earnings.forEach(e => { grouped[e.earned_date] = (grouped[e.earned_date] || 0) + Number(e.amount); });
     let cumulative = 0;
-    return Object.entries(grouped).map(([date, amount]) => { cumulative += amount; return { date, daily: amount, total: cumulative }; });
+    return Object.entries(grouped)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, amount]) => { cumulative += amount; return { date, daily: amount, total: cumulative }; });
   }, [earnings]);
 
   const pieData = useMemo(() => [
