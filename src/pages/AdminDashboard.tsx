@@ -166,6 +166,21 @@ const AdminDashboard = () => {
     setAllTickets(ticketsRes.data || []);
   };
 
+  // Realtime subscriptions — push live updates to admin dashboard
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+    const channel = supabase
+      .channel('admin-dashboard-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'investments' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'referral_commissions' }, () => fetchAll())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isAdmin]);
+
   const stats = useMemo(() => {
     const confirmedInv = allInvestments.filter(i => i.status === 'confirmed');
     return {
