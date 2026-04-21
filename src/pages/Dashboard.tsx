@@ -733,15 +733,37 @@ const Dashboard = () => {
                     <div className="space-y-2">
                       {referrals.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">No referrals yet. Share your code!</p> :
                         referrals.map((r, i) => (
-                          <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><UserCheck className="w-4 h-4 text-amber-700 dark:text-amber-400" /></div>
-                              <div className="min-w-0">
-                                <p className="font-medium text-foreground text-sm truncate">{r.full_name || 'Investor'}</p>
-                                <p className="text-xs text-muted-foreground truncate">{r.email}</p>
+                          <div key={i} className="p-3 rounded-lg bg-muted/50 border border-border">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                  <UserCheck className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-foreground text-sm truncate">{r.full_name || 'Investor'}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{r.email}</p>
+                                </div>
+                              </div>
+                              {r.hasActive ? (
+                                <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/40 text-[10px]">Active</Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[10px]">Pending</Badge>
+                              )}
+                            </div>
+                            <div className="mt-2 grid grid-cols-3 gap-2 text-[10px]">
+                              <div>
+                                <p className="text-muted-foreground">Joined</p>
+                                <p className="text-foreground font-medium">{new Date(r.created_at).toLocaleDateString()}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Invested</p>
+                                <p className="text-foreground font-medium">${Number(r.invested || 0).toFixed(2)}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Your Comm.</p>
+                                <p className="text-emerald-700 dark:text-emerald-400 font-semibold">${Number(r.commissionFromUser || 0).toFixed(2)}</p>
                               </div>
                             </div>
-                            <p className="text-xs text-muted-foreground shrink-0">{new Date(r.created_at).toLocaleDateString()}</p>
                           </div>
                         ))}
                     </div>
