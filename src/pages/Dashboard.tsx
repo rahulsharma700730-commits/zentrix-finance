@@ -166,6 +166,21 @@ const Dashboard = () => {
   const cappingPercent = expectedTotal > 0 ? Math.min(((totalEarned + totalCommissions) / expectedTotal) * 100, 100) : 0;
   const unreadNotifs = notifications.filter(n => !n.is_read).length;
 
+  // Account / cycle metadata
+  const confirmedInvs = useMemo(() => investments.filter(i => i.status === 'confirmed'), [investments]);
+  const firstConfirmed = useMemo(() => {
+    if (confirmedInvs.length === 0) return null;
+    return confirmedInvs
+      .map(i => new Date(i.confirmed_at || i.created_at).getTime())
+      .reduce((a, b) => Math.min(a, b));
+  }, [confirmedInvs]);
+  const expectedCompletion = firstConfirmed ? new Date(firstConfirmed + 600 * 24 * 60 * 60 * 1000) : null;
+  const daysActive = firstConfirmed ? Math.floor((Date.now() - firstConfirmed) / (24 * 60 * 60 * 1000)) : 0;
+  const daysRemaining = firstConfirmed ? Math.max(600 - daysActive, 0) : 600;
+  const referralLink = profile?.referral_code
+    ? `${window.location.origin}/auth?ref=${profile.referral_code}`
+    : '';
+
   const cappingData = useMemo(() =>
     investments.filter(i => i.status === 'confirmed').map(inv => {
       const target = Number(inv.amount) * 2;
