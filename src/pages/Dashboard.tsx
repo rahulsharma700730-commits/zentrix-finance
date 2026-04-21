@@ -126,8 +126,28 @@ const Dashboard = () => {
     setNotifications(notifs.data || []);
     setTickets(tix.data || []);
 
-    const { data: refList } = await supabase.from('profiles').select('full_name, email, created_at').eq('referred_by', user.id);
-    setReferrals(refList || []);
+    const { data: refList } = await supabase
+      .from('profiles')
+      .select('user_id, full_name, email, created_at')
+      .eq('referred_by', user.id)
+      .order('created_at', { ascending: false });
+
+    // Enrich with each referee's confirmed investment totals + commission earned from them
+    const enriched = await Promise.all((refList || []).map(async (r: any) => {
+      const { data: invs } = await supabase
+        .from('investments')
+        .select('amount, status')
+        .eq('user_id', r.user_id);
+      const invested = (invs || [])
+        .filter((i: any) => i.status === 'confirmed')
+        .reduce((s: number, i: any) => s + Number(i.amount), 0);
+      const commissionFromUser = (comm.data || [])
+        .filter((c: any) => c.referred_id === r.user_id)
+        .reduce((s: number, c: any) => s + Number(c.amount), 0);
+      const hasActive = (invs || []).some((i: any) => i.status === 'confirmed');
+      return { ...r, invested, commissionFromUser, hasActive };
+    }));
+    setReferrals(enriched);
 
     if (profile?.referred_by) {
       const { data: refData } = await supabase.from('profiles').select('full_name').eq('user_id', profile.referred_by).single();
@@ -145,6 +165,21 @@ const Dashboard = () => {
   const expectedTotal = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + Number(i.amount) * 2, 0), [investments]);
   const cappingPercent = expectedTotal > 0 ? Math.min(((totalEarned + totalCommissions) / expectedTotal) * 100, 100) : 0;
   const unreadNotifs = notifications.filter(n => !n.is_read).length;
+
+  // Account / cycle metadata
+  const confirmedInvs = useMemo(() => investments.filter(i => i.status === 'confirmed'), [investments]);
+  const firstConfirmed = useMemo(() => {
+    if (confirmedInvs.length === 0) return null;
+    return confirmedInvs
+      .map(i => new Date(i.confirmed_at || i.created_at).getTime())
+      .reduce((a, b) => Math.min(a, b));
+  }, [confirmedInvs]);
+  const expectedCompletion = firstConfirmed ? new Date(firstConfirmed + 600 * 24 * 60 * 60 * 1000) : null;
+  const daysActive = firstConfirmed ? Math.floor((Date.now() - firstConfirmed) / (24 * 60 * 60 * 1000)) : 0;
+  const daysRemaining = firstConfirmed ? Math.max(600 - daysActive, 0) : 600;
+  const referralLink = profile?.referral_code
+    ? `${window.location.origin}/auth?ref=${profile.referral_code}`
+    : '';
 
   const cappingData = useMemo(() =>
     investments.filter(i => i.status === 'confirmed').map(inv => {
@@ -332,6 +367,77 @@ const Dashboard = () => {
                     </Card>
                   ))}
                 </div>
+
+                {/* Account details */}
+                <Card className="border-border mb-6">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-display text-foreground flex items-center gap-2">
+                      <UserCheck className="w-4 h-4 text-amber-700 dark:text-amber-400" /> Account Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs sm:text-sm">
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Full Name</p>
+                        <p className="font-medium text-foreground truncate">{profile?.full_name || '-'}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Email</p>
+                        <p className="font-medium text-foreground truncate">{profile?.email || '-'}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Joining Date</p>
+                        <p className="font-medium text-foreground">
+                          {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '-'}
+                        </p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Cycle Start</p>
+                        <p className="font-medium text-foreground">
+                          {firstConfirmed ? new Date(firstConfirmed).toLocaleDateString() : 'Not started'}
+                        </p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Expected Completion</p>
+                        <p className="font-medium text-foreground">
+                          {expectedCompletion ? expectedCompletion.toLocaleDateString() : '-'}
+                        </p>
+                        {firstConfirmed && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {daysActive} days active • {daysRemaining} days left
+                          </p>
+                        )}
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Referral Code</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-mono font-semibold text-amber-700 dark:text-amber-400">{profile?.referral_code || '-'}</p>
+                          {profile?.referral_code && <CopyBtn text={profile.referral_code} />}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border col-span-2 md:col-span-2">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Withdrawal Wallet (BEP20)</p>
+                        <p className="font-mono text-foreground break-all text-[11px]">{profile?.wallet_address || 'Not set'}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Account Status</p>
+                        {profile?.is_blocked ? (
+                          <Badge variant="outline" className="bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/40">Blocked</Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/40">Active</Badge>
+                        )}
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Total Referrals</p>
+                        <p className="font-semibold text-foreground">{referrals.length}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Referred By</p>
+                        <p className="font-medium text-foreground truncate">{referrerName || '—'}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
                 {totalInvested > 0 && (
                   <Card className="border-border mb-6">
@@ -627,15 +733,37 @@ const Dashboard = () => {
                     <div className="space-y-2">
                       {referrals.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">No referrals yet. Share your code!</p> :
                         referrals.map((r, i) => (
-                          <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><UserCheck className="w-4 h-4 text-amber-700 dark:text-amber-400" /></div>
-                              <div className="min-w-0">
-                                <p className="font-medium text-foreground text-sm truncate">{r.full_name || 'Investor'}</p>
-                                <p className="text-xs text-muted-foreground truncate">{r.email}</p>
+                          <div key={i} className="p-3 rounded-lg bg-muted/50 border border-border">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                  <UserCheck className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-foreground text-sm truncate">{r.full_name || 'Investor'}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{r.email}</p>
+                                </div>
+                              </div>
+                              {r.hasActive ? (
+                                <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/40 text-[10px]">Active</Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[10px]">Pending</Badge>
+                              )}
+                            </div>
+                            <div className="mt-2 grid grid-cols-3 gap-2 text-[10px]">
+                              <div>
+                                <p className="text-muted-foreground">Joined</p>
+                                <p className="text-foreground font-medium">{new Date(r.created_at).toLocaleDateString()}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Invested</p>
+                                <p className="text-foreground font-medium">${Number(r.invested || 0).toFixed(2)}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Your Comm.</p>
+                                <p className="text-emerald-700 dark:text-emerald-400 font-semibold">${Number(r.commissionFromUser || 0).toFixed(2)}</p>
                               </div>
                             </div>
-                            <p className="text-xs text-muted-foreground shrink-0">{new Date(r.created_at).toLocaleDateString()}</p>
                           </div>
                         ))}
                     </div>
