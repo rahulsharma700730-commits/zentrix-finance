@@ -368,6 +368,77 @@ const Dashboard = () => {
                   ))}
                 </div>
 
+                {/* Account details */}
+                <Card className="border-border mb-6">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-display text-foreground flex items-center gap-2">
+                      <UserCheck className="w-4 h-4 text-amber-700 dark:text-amber-400" /> Account Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs sm:text-sm">
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Full Name</p>
+                        <p className="font-medium text-foreground truncate">{profile?.full_name || '-'}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Email</p>
+                        <p className="font-medium text-foreground truncate">{profile?.email || '-'}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Joining Date</p>
+                        <p className="font-medium text-foreground">
+                          {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '-'}
+                        </p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Cycle Start</p>
+                        <p className="font-medium text-foreground">
+                          {firstConfirmed ? new Date(firstConfirmed).toLocaleDateString() : 'Not started'}
+                        </p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Expected Completion</p>
+                        <p className="font-medium text-foreground">
+                          {expectedCompletion ? expectedCompletion.toLocaleDateString() : '-'}
+                        </p>
+                        {firstConfirmed && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {daysActive} days active • {daysRemaining} days left
+                          </p>
+                        )}
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Referral Code</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-mono font-semibold text-amber-700 dark:text-amber-400">{profile?.referral_code || '-'}</p>
+                          {profile?.referral_code && <CopyBtn text={profile.referral_code} />}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border col-span-2 md:col-span-2">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Withdrawal Wallet (BEP20)</p>
+                        <p className="font-mono text-foreground break-all text-[11px]">{profile?.wallet_address || 'Not set'}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Account Status</p>
+                        {profile?.is_blocked ? (
+                          <Badge variant="outline" className="bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/40">Blocked</Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/40">Active</Badge>
+                        )}
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Total Referrals</p>
+                        <p className="font-semibold text-foreground">{referrals.length}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Referred By</p>
+                        <p className="font-medium text-foreground truncate">{referrerName || '—'}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {totalInvested > 0 && (
                   <Card className="border-border mb-6">
                     <CardHeader className="pb-2"><CardTitle className="text-sm font-display text-foreground">Investment Capping Status (200% Return)</CardTitle></CardHeader>
