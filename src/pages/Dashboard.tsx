@@ -126,8 +126,28 @@ const Dashboard = () => {
     setNotifications(notifs.data || []);
     setTickets(tix.data || []);
 
-    const { data: refList } = await supabase.from('profiles').select('full_name, email, created_at').eq('referred_by', user.id);
-    setReferrals(refList || []);
+    const { data: refList } = await supabase
+      .from('profiles')
+      .select('user_id, full_name, email, created_at')
+      .eq('referred_by', user.id)
+      .order('created_at', { ascending: false });
+
+    // Enrich with each referee's confirmed investment totals + commission earned from them
+    const enriched = await Promise.all((refList || []).map(async (r: any) => {
+      const { data: invs } = await supabase
+        .from('investments')
+        .select('amount, status')
+        .eq('user_id', r.user_id);
+      const invested = (invs || [])
+        .filter((i: any) => i.status === 'confirmed')
+        .reduce((s: number, i: any) => s + Number(i.amount), 0);
+      const commissionFromUser = (comm.data || [])
+        .filter((c: any) => c.referred_id === r.user_id)
+        .reduce((s: number, c: any) => s + Number(c.amount), 0);
+      const hasActive = (invs || []).some((i: any) => i.status === 'confirmed');
+      return { ...r, invested, commissionFromUser, hasActive };
+    }));
+    setReferrals(enriched);
 
     if (profile?.referred_by) {
       const { data: refData } = await supabase.from('profiles').select('full_name').eq('user_id', profile.referred_by).single();
