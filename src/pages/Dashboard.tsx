@@ -739,46 +739,128 @@ const Dashboard = () => {
               </Card>
             )}
 
-            {/* REFERRAL */}
+            {/* REFERRAL / MLM */}
             {section === 'referral' && (
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-6">
+                {/* Code + summary */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Card className="border-border">
+                    <CardHeader><CardTitle className="text-base font-display text-foreground">Your Referral Code</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="p-5 rounded-xl bg-gradient-gold-subtle border border-primary/20 mb-4 text-center">
+                        <p className="text-xs text-muted-foreground mb-2 font-medium">Build your team — earn on 5 levels of daily ROI:</p>
+                        <div className="text-2xl sm:text-3xl font-display font-bold text-amber-700 dark:text-amber-400 tracking-widest mb-3">{profile?.referral_code || '---'}</div>
+                        <Button variant="outline" size="sm" className="border-primary/30" onClick={() => profile?.referral_code && copyToClipboard(profile.referral_code)}>
+                          <Copy className="w-3 h-3 mr-1" /> Copy Code
+                        </Button>
+                        {referralLink && (
+                          <Button variant="outline" size="sm" className="border-primary/30 ml-2" onClick={() => copyToClipboard(referralLink)}>
+                            <Copy className="w-3 h-3 mr-1" /> Copy Link
+                          </Button>
+                        )}
+                      </div>
+                      {referrerName && (
+                        <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border">
+                          <p className="text-xs text-muted-foreground">You were referred by:</p>
+                          <p className="text-sm font-medium text-foreground">{referrerName}</p>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="text-center p-3 rounded-xl bg-muted/50 border border-border">
+                          <div className="text-lg font-display font-bold text-foreground">{directReferrals.length}</div>
+                          <div className="text-[10px] text-muted-foreground">Directs</div>
+                        </div>
+                        <div className="text-center p-3 rounded-xl bg-muted/50 border border-border">
+                          <div className="text-lg font-display font-bold text-foreground">{teamSize}</div>
+                          <div className="text-[10px] text-muted-foreground">Team (5 lvl)</div>
+                        </div>
+                        <div className="text-center p-3 rounded-xl bg-muted/50 border border-border">
+                          <div className="text-lg font-display font-bold text-amber-700 dark:text-amber-400">${totalMlm.toFixed(2)}</div>
+                          <div className="text-[10px] text-muted-foreground">MLM Earned</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Rank card */}
+                  <Card className="border-border">
+                    <CardHeader><CardTitle className="text-base font-display text-foreground">Leader Rank</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="p-5 rounded-xl border border-border text-center mb-4" style={{ backgroundColor: currentRank ? `${currentRank.badge_color}20` : undefined }}>
+                        <div className="text-2xl sm:text-3xl font-display font-bold mb-1" style={{ color: currentRank?.badge_color || 'hsl(var(--muted-foreground))' }}>
+                          {currentRank?.name || 'Unranked'}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">Your current leader rank</p>
+                      </div>
+                      {nextRank ? (
+                        <div className="space-y-2 text-xs">
+                          <p className="text-muted-foreground">Progress to <span className="font-semibold text-foreground">{nextRank.name}</span>:</p>
+                          {[
+                            { label: 'Active directs', cur: directWithInvestment, target: nextRank.min_direct_referrals },
+                            { label: 'Team size', cur: teamSize, target: nextRank.min_team_size },
+                            { label: 'Team volume', cur: teamVolume, target: Number(nextRank.min_team_volume_usd), money: true },
+                          ].map((m, i) => {
+                            const pct = m.target > 0 ? Math.min((m.cur / m.target) * 100, 100) : 100;
+                            return (
+                              <div key={i}>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-muted-foreground">{m.label}</span>
+                                  <span className="text-foreground font-medium">
+                                    {m.money ? `$${m.cur.toFixed(0)} / $${m.target}` : `${m.cur} / ${m.target}`}
+                                  </span>
+                                </div>
+                                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                                  <div className="h-full bg-gradient-to-r from-amber-500 to-amber-600 transition-all" style={{ width: `${pct}%` }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-center text-muted-foreground">You've reached the top rank! 👑</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Levels breakdown */}
                 <Card className="border-border">
-                  <CardHeader><CardTitle className="text-base font-display text-foreground">Your Referral Program</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="text-base font-display text-foreground">Earnings by Level</CardTitle></CardHeader>
                   <CardContent>
-                    <div className="p-5 rounded-xl bg-gradient-gold-subtle border border-primary/20 mb-6 text-center">
-                      <p className="text-xs text-muted-foreground mb-2 font-medium">Share this code to earn 10% instant commission:</p>
-                      <div className="text-2xl sm:text-3xl font-display font-bold text-amber-700 dark:text-amber-400 tracking-widest mb-3">{profile?.referral_code || '---'}</div>
-                      <Button variant="outline" size="sm" className="border-primary/30" onClick={() => profile?.referral_code && copyToClipboard(profile.referral_code)}>
-                        <Copy className="w-3 h-3 mr-1" /> Copy Code
-                      </Button>
-                      <p className="text-[10px] text-muted-foreground mt-3">New investor enters this code during signup → You get 10% of their investment instantly!</p>
-                    </div>
-                    {referrerName && (
-                      <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border">
-                        <p className="text-xs text-muted-foreground">You were referred by:</p>
-                        <p className="text-sm font-medium text-foreground">{referrerName}</p>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="text-center p-4 rounded-xl bg-muted/50 border border-border">
-                        <Users className="w-5 h-5 text-amber-700 dark:text-amber-400 mx-auto mb-1" />
-                        <div className="text-2xl font-display font-bold text-foreground">{referrals.length}</div>
-                        <div className="text-xs text-muted-foreground">Total Referrals</div>
-                      </div>
-                      <div className="text-center p-4 rounded-xl bg-muted/50 border border-border">
-                        <DollarSign className="w-5 h-5 text-amber-700 dark:text-amber-400 mx-auto mb-1" />
-                        <div className="text-2xl font-display font-bold text-amber-700 dark:text-amber-400">${totalCommissions.toFixed(2)}</div>
-                        <div className="text-xs text-muted-foreground">Commission Earned</div>
-                      </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead><tr className="border-b border-border bg-muted/30">
+                          <th className="text-left p-2 text-muted-foreground font-medium text-xs">Level</th>
+                          <th className="text-left p-2 text-muted-foreground font-medium text-xs">Rate</th>
+                          <th className="text-right p-2 text-muted-foreground font-medium text-xs">Members</th>
+                          <th className="text-right p-2 text-muted-foreground font-medium text-xs">Invested</th>
+                          <th className="text-right p-2 text-muted-foreground font-medium text-xs">Earned</th>
+                        </tr></thead>
+                        <tbody>
+                          {levelStats.map(s => (
+                            <tr key={s.level} className="border-b border-border/50">
+                              <td className="p-2 font-semibold text-foreground">L{s.level}</td>
+                              <td className="p-2 text-muted-foreground">{s.rate}%</td>
+                              <td className="p-2 text-right text-foreground">{s.members}</td>
+                              <td className="p-2 text-right text-foreground">${s.invested.toFixed(2)}</td>
+                              <td className="p-2 text-right text-emerald-700 dark:text-emerald-400 font-semibold">${s.earned.toFixed(3)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Team list */}
                 <Card className="border-border">
-                  <CardHeader><CardTitle className="text-base font-display text-foreground">Referred Investors</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="text-base font-display text-foreground">My Team ({teamSize})</CardTitle></CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
-                      {referrals.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">No referrals yet. Share your code!</p> :
-                        referrals.map((r, i) => (
+                    {downline.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">No referrals yet. Share your code to start building your team!</p>
+                    ) : (
+                      <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                        {downline.map((r, i) => (
                           <div key={i} className="p-3 rounded-lg bg-muted/50 border border-border">
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex items-center gap-3 min-w-0">
@@ -787,14 +869,17 @@ const Dashboard = () => {
                                 </div>
                                 <div className="min-w-0">
                                   <p className="font-medium text-foreground text-sm truncate">{r.full_name || 'Investor'}</p>
-                                  <p className="text-xs text-muted-foreground truncate">{r.email}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{r.email?.replace(/^(.{2}).+(@.+)$/, '$1***$2')}</p>
                                 </div>
                               </div>
-                              {r.hasActive ? (
-                                <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/40 text-[10px]">Active</Badge>
-                              ) : (
-                                <Badge variant="outline" className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[10px]">Pending</Badge>
-                              )}
+                              <div className="flex flex-col items-end gap-1">
+                                <Badge variant="outline" className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[10px]">L{r.level}</Badge>
+                                {r.hasActive ? (
+                                  <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/40 text-[10px]">Active</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[10px]">Pending</Badge>
+                                )}
+                              </div>
                             </div>
                             <div className="mt-2 grid grid-cols-3 gap-2 text-[10px]">
                               <div>
@@ -806,28 +891,48 @@ const Dashboard = () => {
                                 <p className="text-foreground font-medium">${Number(r.invested || 0).toFixed(2)}</p>
                               </div>
                               <div>
-                                <p className="text-muted-foreground">Your Comm.</p>
-                                <p className="text-emerald-700 dark:text-emerald-400 font-semibold">${Number(r.commissionFromUser || 0).toFixed(2)}</p>
+                                <p className="text-muted-foreground">Earned from</p>
+                                <p className="text-emerald-700 dark:text-emerald-400 font-semibold">${Number(r.commissionFromUser || 0).toFixed(3)}</p>
                               </div>
                             </div>
                           </div>
                         ))}
-                    </div>
-                    {commissions.length > 0 && (
-                      <div className="mt-6 pt-4 border-t border-border">
-                        <h4 className="text-sm font-display font-semibold text-foreground mb-3">Commission History</h4>
-                        <div className="space-y-2">
-                          {commissions.slice(0, 10).map((c, i) => (
-                            <div key={i} className="flex items-center justify-between p-2 rounded-lg text-sm">
-                              <span className="text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString()}</span>
-                              <span className="text-emerald-700 dark:text-emerald-400 font-semibold">+${Number(c.amount).toFixed(2)}</span>
-                            </div>
-                          ))}
-                        </div>
                       </div>
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Recent commission ledger */}
+                {(mlmCommissions.length > 0 || commissions.length > 0) && (
+                  <Card className="border-border">
+                    <CardHeader><CardTitle className="text-base font-display text-foreground">Recent Commissions</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="space-y-1 max-h-80 overflow-y-auto">
+                        {mlmCommissions.slice(0, 25).map((c: any, i: number) => (
+                          <div key={`m-${i}`} className="flex items-center justify-between p-2 rounded-lg text-sm hover:bg-muted/50">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[10px]">L{c.level}</Badge>
+                              <span className="text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString()}</span>
+                              <span className="text-muted-foreground text-[10px]">{c.percentage}%</span>
+                            </div>
+                            <span className="text-emerald-700 dark:text-emerald-400 font-semibold">+${Number(c.amount).toFixed(3)}</span>
+                          </div>
+                        ))}
+                        {commissions.length > 0 && (
+                          <div className="pt-2 mt-2 border-t border-border">
+                            <p className="text-[10px] text-muted-foreground mb-1">Legacy referral commissions:</p>
+                            {commissions.slice(0, 10).map((c, i) => (
+                              <div key={`l-${i}`} className="flex items-center justify-between p-2 rounded-lg text-sm">
+                                <span className="text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString()}</span>
+                                <span className="text-emerald-700 dark:text-emerald-400 font-semibold">+${Number(c.amount).toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
 
