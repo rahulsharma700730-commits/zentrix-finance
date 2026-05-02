@@ -77,6 +77,7 @@ const Dashboard = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets', filter: `user_id=eq.${user.id}` }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'referral_commissions', filter: `referrer_id=eq.${user.id}` }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mlm_commissions', filter: `referrer_id=eq.${user.id}` }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `referred_by=eq.${user.id}` }, () => fetchData())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -111,45 +112,56 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     if (!user) return;
-    const [inv, earn, wd, comm, settings, notifs, tix] = await Promise.all([
+    const sb = supabase as any;
+    const [inv, earn, wd, comm, mlm, settings, notifs, tix, ranks] = await Promise.all([
       supabase.from('investments').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('daily_earnings').select('*').eq('user_id', user.id).order('earned_date', { ascending: true }),
       supabase.from('withdrawals').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('referral_commissions').select('*').eq('referrer_id', user.id).order('created_at', { ascending: false }),
+      sb.from('mlm_commissions').select('*').eq('referrer_id', user.id).order('created_at', { ascending: false }),
       supabase.from('site_settings').select('*').limit(1).single(),
       supabase.from('notifications').select('*').or(`user_id.eq.${user.id},user_id.is.null`).order('created_at', { ascending: false }),
       supabase.from('support_tickets').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+      sb.from('rank_tiers').select('*').order('sort_order', { ascending: true }),
     ]);
     setInvestments(inv.data || []);
     setEarnings(earn.data || []);
     setWithdrawals(wd.data || []);
     setCommissions(comm.data || []);
+    setMlmCommissions(mlm.data || []);
     setSiteSettings(settings.data);
     setNotifications(notifs.data || []);
     setTickets(tix.data || []);
+    setRankTiers(ranks.data || []);
 
-    const { data: refList } = await supabase
-      .from('profiles')
-      .select('user_id, full_name, email, created_at')
-      .eq('referred_by', user.id)
-      .order('created_at', { ascending: false });
-
-    // Enrich with each referee's confirmed investment totals + commission earned from them
-    const enriched = await Promise.all((refList || []).map(async (r: any) => {
-      const { data: invs } = await supabase
+    // Build downline up to 5 levels deep by walking referred_by
+    const flat: any[] = [];
+    let currentLevel: string[] = [user.id];
+    for (let lvl = 1; lvl <= 5 && currentLevel.length > 0; lvl++) {
+      const { data: levelUsers } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email, created_at, referred_by')
+        .in('referred_by', currentLevel);
+      if (!levelUsers || levelUsers.length === 0) break;
+      // Enrich with confirmed investment totals
+      const ids = levelUsers.map((u: any) => u.user_id);
+      const { data: theirInvs } = await supabase
         .from('investments')
-        .select('amount, status')
-        .eq('user_id', r.user_id);
-      const invested = (invs || [])
-        .filter((i: any) => i.status === 'confirmed')
-        .reduce((s: number, i: any) => s + Number(i.amount), 0);
-      const commissionFromUser = (comm.data || [])
-        .filter((c: any) => c.referred_id === r.user_id)
-        .reduce((s: number, c: any) => s + Number(c.amount), 0);
-      const hasActive = (invs || []).some((i: any) => i.status === 'confirmed');
-      return { ...r, invested, commissionFromUser, hasActive };
-    }));
-    setReferrals(enriched);
+        .select('user_id, amount, status')
+        .in('user_id', ids);
+      const enriched = levelUsers.map((u: any) => {
+        const userInvs = (theirInvs || []).filter((i: any) => i.user_id === u.user_id);
+        const invested = userInvs.filter((i: any) => i.status === 'confirmed').reduce((s: number, i: any) => s + Number(i.amount), 0);
+        const hasActive = userInvs.some((i: any) => i.status === 'confirmed');
+        const commissionFromUser = (mlm.data || [])
+          .filter((c: any) => c.downline_id === u.user_id)
+          .reduce((s: number, c: any) => s + Number(c.amount), 0);
+        return { ...u, level: lvl, invested, hasActive, commissionFromUser };
+      });
+      flat.push(...enriched);
+      currentLevel = ids;
+    }
+    setDownline(flat);
 
     if (profile?.referred_by) {
       const { data: refData } = await supabase.from('profiles').select('full_name').eq('user_id', profile.referred_by).single();
