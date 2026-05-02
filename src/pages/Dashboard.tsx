@@ -475,7 +475,7 @@ const Dashboard = () => {
                       </div>
                       <div className="p-3 rounded-lg bg-muted/50 border border-border">
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Total Referrals</p>
-                        <p className="font-semibold text-foreground">{referrals.length}</p>
+                        <p className="font-semibold text-foreground">{directReferrals.length}</p>
                       </div>
                       <div className="p-3 rounded-lg bg-muted/50 border border-border">
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Referred By</p>
