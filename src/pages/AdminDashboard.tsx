@@ -184,6 +184,8 @@ const AdminDashboard = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, () => fetchAll())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => fetchAll())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'referral_commissions' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mlm_commissions' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rank_tiers' }, () => fetchAll())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
