@@ -172,13 +172,45 @@ const Dashboard = () => {
   const totalInvested = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + Number(i.amount), 0), [investments]);
   const totalEarned = useMemo(() => earnings.reduce((s, e) => s + Number(e.amount), 0), [earnings]);
   const totalCommissions = useMemo(() => commissions.reduce((s, c) => s + Number(c.amount), 0), [commissions]);
+  const totalMlm = useMemo(() => mlmCommissions.reduce((s, c) => s + Number(c.amount), 0), [mlmCommissions]);
   const totalWithdrawn = useMemo(() => withdrawals.filter(w => w.status === 'approved').reduce((s, w) => s + Number(w.amount), 0), [withdrawals]);
   const pendingWithdrawals = useMemo(() => withdrawals.filter(w => w.status === 'pending').reduce((s, w) => s + Number(w.amount), 0), [withdrawals]);
-  const availableBalance = totalEarned + totalCommissions - totalWithdrawn - pendingWithdrawals;
+  const availableBalance = totalEarned + totalCommissions + totalMlm - totalWithdrawn - pendingWithdrawals;
   const dailyRate = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + (Number(i.amount) * 2) / 600, 0), [investments]);
   const expectedTotal = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + Number(i.amount) * 2, 0), [investments]);
-  const cappingPercent = expectedTotal > 0 ? Math.min(((totalEarned + totalCommissions) / expectedTotal) * 100, 100) : 0;
+  const cappingPercent = expectedTotal > 0 ? Math.min(((totalEarned + totalCommissions + totalMlm) / expectedTotal) * 100, 100) : 0;
   const unreadNotifs = notifications.filter(n => !n.is_read).length;
+
+  // MLM derived data
+  const directReferrals = useMemo(() => downline.filter(d => d.level === 1), [downline]);
+  const teamSize = downline.length;
+  const teamVolume = useMemo(() => downline.reduce((s, d) => s + Number(d.invested || 0), 0), [downline]);
+  const directWithInvestment = useMemo(() => directReferrals.filter(d => d.hasActive).length, [directReferrals]);
+  const currentRank = useMemo(() => {
+    const sorted = [...rankTiers].sort((a, b) => b.sort_order - a.sort_order);
+    return sorted.find(r =>
+      directWithInvestment >= r.min_direct_referrals &&
+      teamSize >= r.min_team_size &&
+      teamVolume >= Number(r.min_team_volume_usd)
+    ) || null;
+  }, [rankTiers, directWithInvestment, teamSize, teamVolume]);
+  const nextRank = useMemo(() => {
+    const sorted = [...rankTiers].sort((a, b) => a.sort_order - b.sort_order);
+    return sorted.find(r =>
+      directWithInvestment < r.min_direct_referrals ||
+      teamSize < r.min_team_size ||
+      teamVolume < Number(r.min_team_volume_usd)
+    ) || null;
+  }, [rankTiers, directWithInvestment, teamSize, teamVolume]);
+  const levelStats = useMemo(() => {
+    const rates: Record<number, number> = { 1: 10, 2: 3, 3: 3, 4: 2, 5: 2 };
+    return [1, 2, 3, 4, 5].map(lvl => {
+      const members = downline.filter(d => d.level === lvl);
+      const earned = mlmCommissions.filter((c: any) => c.level === lvl).reduce((s: number, c: any) => s + Number(c.amount), 0);
+      const invested = members.reduce((s, m) => s + Number(m.invested || 0), 0);
+      return { level: lvl, rate: rates[lvl], members: members.length, invested, earned };
+    });
+  }, [downline, mlmCommissions]);
 
   // Account / cycle metadata
   const confirmedInvs = useMemo(() => investments.filter(i => i.status === 'confirmed'), [investments]);
