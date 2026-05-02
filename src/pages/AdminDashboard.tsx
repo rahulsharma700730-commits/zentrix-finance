@@ -238,18 +238,8 @@ const AdminDashboard = () => {
     }).eq('id', inv.id);
     if (error) { toast.error(error.message); return; }
 
-    const investorProfile = users.find(u => u.user_id === inv.user_id);
-    if (investorProfile?.referred_by) {
-      const commission = Number(inv.amount) * 0.1;
-      await supabase.from('referral_commissions').insert({
-        referrer_id: investorProfile.referred_by, referred_id: inv.user_id,
-        investment_id: inv.id, amount: commission
-      });
-      await supabase.from('daily_earnings').insert({
-        user_id: investorProfile.referred_by, investment_id: inv.id,
-        amount: commission, earned_date: new Date().toISOString().split('T')[0]
-      });
-    }
+    // MLM commissions (5-level deep) are now paid daily by the
+    // process-daily-earnings edge function, not upfront on confirmation.
 
     await supabase.from('notifications').insert({
       user_id: inv.user_id,
