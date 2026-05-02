@@ -831,6 +831,7 @@ const AdminDashboard = () => {
     'all-investments': 'All Investments',
     'all-withdrawals': 'All Withdrawals',
     referrals: 'Referrals',
+    mlm: 'MLM & Ranks',
     notifications: 'Send Alerts',
     support: 'Support Tickets',
     settings: 'Site Settings',
