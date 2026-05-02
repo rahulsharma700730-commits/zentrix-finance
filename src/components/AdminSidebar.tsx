@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, AlertTriangle, ArrowDownToLine, Users, TrendingUp, History,
-  Link2, Bell, MessageSquare, Settings, LogOut, Download, Shield,
+  Link2, Bell, MessageSquare, Settings, LogOut, Download, Shield, Crown,
 } from 'lucide-react';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 
 export type AdminSection =
   | 'overview' | 'deposits' | 'withdrawals' | 'users'
-  | 'all-investments' | 'all-withdrawals' | 'referrals'
+  | 'all-investments' | 'all-withdrawals' | 'referrals' | 'mlm'
   | 'notifications' | 'support' | 'settings';
 
 interface Props {
@@ -34,6 +34,7 @@ const items: { id: AdminSection; title: string; icon: any; badgeKey?: 'deposits'
   { id: 'all-investments', title: 'All Investments', icon: TrendingUp },
   { id: 'all-withdrawals', title: 'All Withdrawals', icon: History },
   { id: 'referrals', title: 'Referrals', icon: Link2 },
+  { id: 'mlm', title: 'MLM & Ranks', icon: Crown },
   { id: 'notifications', title: 'Send Alerts', icon: Bell },
   { id: 'support', title: 'Support', icon: MessageSquare, badgeKey: 'tickets' },
   { id: 'settings', title: 'Settings', icon: Settings },

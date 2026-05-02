@@ -66,6 +66,8 @@ const AdminDashboard = () => {
   const [allInvestments, setAllInvestments] = useState<any[]>([]);
   const [allWithdrawals, setAllWithdrawals] = useState<any[]>([]);
   const [allCommissions, setAllCommissions] = useState<any[]>([]);
+  const [allMlm, setAllMlm] = useState<any[]>([]);
+  const [rankTiers, setRankTiers] = useState<any[]>([]);
   const [allTickets, setAllTickets] = useState<any[]>([]);
   const [siteSettings, setSiteSettings] = useState<any>(null);
   const [usdtAddress, setUsdtAddress] = useState('');
@@ -77,6 +79,7 @@ const AdminDashboard = () => {
   const [selectedUserReferrals, setSelectedUserReferrals] = useState<any[]>([]);
   const [filterTab, setFilterTab] = useState('all');
 
+  const [editingRank, setEditingRank] = useState<any>(null);
   const [notifTitle, setNotifTitle] = useState('');
   const [notifMessage, setNotifMessage] = useState('');
   const [notifTarget, setNotifTarget] = useState('all');
@@ -149,13 +152,16 @@ const AdminDashboard = () => {
   }, [user, isAdmin]);
 
   const fetchAll = async () => {
-    const [usersRes, invRes, wdRes, settingsRes, commRes, ticketsRes] = await Promise.all([
+    const sb = supabase as any;
+    const [usersRes, invRes, wdRes, settingsRes, commRes, ticketsRes, mlmRes, ranksRes] = await Promise.all([
       supabase.from('profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('investments').select('*').order('created_at', { ascending: false }),
       supabase.from('withdrawals').select('*').order('created_at', { ascending: false }),
       supabase.from('site_settings').select('*').limit(1).single(),
       supabase.from('referral_commissions').select('*').order('created_at', { ascending: false }),
       supabase.from('support_tickets').select('*').order('created_at', { ascending: false }),
+      sb.from('mlm_commissions').select('*').order('created_at', { ascending: false }),
+      sb.from('rank_tiers').select('*').order('sort_order', { ascending: true }),
     ]);
     setUsers(usersRes.data || []);
     setAllInvestments(invRes.data || []);
@@ -164,6 +170,8 @@ const AdminDashboard = () => {
     setUsdtAddress(settingsRes.data?.usdt_address || '');
     setAllCommissions(commRes.data || []);
     setAllTickets(ticketsRes.data || []);
+    setAllMlm(mlmRes.data || []);
+    setRankTiers(ranksRes.data || []);
   };
 
   // Realtime subscriptions — push live updates to admin dashboard
@@ -176,6 +184,8 @@ const AdminDashboard = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, () => fetchAll())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => fetchAll())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'referral_commissions' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mlm_commissions' }, () => fetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rank_tiers' }, () => fetchAll())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -238,18 +248,8 @@ const AdminDashboard = () => {
     }).eq('id', inv.id);
     if (error) { toast.error(error.message); return; }
 
-    const investorProfile = users.find(u => u.user_id === inv.user_id);
-    if (investorProfile?.referred_by) {
-      const commission = Number(inv.amount) * 0.1;
-      await supabase.from('referral_commissions').insert({
-        referrer_id: investorProfile.referred_by, referred_id: inv.user_id,
-        investment_id: inv.id, amount: commission
-      });
-      await supabase.from('daily_earnings').insert({
-        user_id: investorProfile.referred_by, investment_id: inv.id,
-        amount: commission, earned_date: new Date().toISOString().split('T')[0]
-      });
-    }
+    // MLM commissions (5-level deep) are now paid daily by the
+    // process-daily-earnings edge function, not upfront on confirmation.
 
     await supabase.from('notifications').insert({
       user_id: inv.user_id,
@@ -841,6 +841,7 @@ const AdminDashboard = () => {
     'all-investments': 'All Investments',
     'all-withdrawals': 'All Withdrawals',
     referrals: 'Referrals',
+    mlm: 'MLM & Ranks',
     notifications: 'Send Alerts',
     support: 'Support Tickets',
     settings: 'Site Settings',
@@ -1262,6 +1263,112 @@ const AdminDashboard = () => {
                     {users.filter(u => u.referred_by).length === 0 && <p className="text-center text-muted-foreground py-4 text-sm">No referral connections yet</p>}
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* MLM & Ranks */}
+        {section === 'mlm' && (
+          <div className="space-y-6">
+            <div className="grid sm:grid-cols-3 gap-4">
+              {(() => {
+                const today = new Date().toISOString().split('T')[0];
+                const todayTotal = allMlm.filter((c: any) => c.earned_date === today).reduce((s: number, c: any) => s + Number(c.amount), 0);
+                const monthStart = new Date(); monthStart.setDate(1);
+                const monthTotal = allMlm.filter((c: any) => new Date(c.created_at) >= monthStart).reduce((s: number, c: any) => s + Number(c.amount), 0);
+                const lifetime = allMlm.reduce((s: number, c: any) => s + Number(c.amount), 0);
+                return (
+                  <>
+                    <Card className="border-border"><CardContent className="pt-6"><p className="text-xs text-muted-foreground">MLM Paid Today</p><p className="text-2xl font-display font-bold text-amber-600 dark:text-amber-400">${todayTotal.toFixed(3)}</p></CardContent></Card>
+                    <Card className="border-border"><CardContent className="pt-6"><p className="text-xs text-muted-foreground">This Month</p><p className="text-2xl font-display font-bold text-foreground">${monthTotal.toFixed(2)}</p></CardContent></Card>
+                    <Card className="border-border"><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Lifetime</p><p className="text-2xl font-display font-bold text-foreground">${lifetime.toFixed(2)}</p></CardContent></Card>
+                  </>
+                );
+              })()}
+            </div>
+
+            <Card className="border-border">
+              <CardHeader><CardTitle className="text-base font-display text-foreground">Top Leaders by Team Volume</CardTitle></CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b border-border bg-muted/30">
+                      <th className="text-left p-2 text-muted-foreground text-xs">Leader</th>
+                      <th className="text-left p-2 text-muted-foreground text-xs">Rank</th>
+                      <th className="text-right p-2 text-muted-foreground text-xs">Directs</th>
+                      <th className="text-right p-2 text-muted-foreground text-xs">Team</th>
+                      <th className="text-right p-2 text-muted-foreground text-xs">Volume</th>
+                      <th className="text-right p-2 text-muted-foreground text-xs">MLM Earned</th>
+                    </tr></thead>
+                    <tbody>
+                      {[...users]
+                        .sort((a, b) => Number(b.team_volume || 0) - Number(a.team_volume || 0))
+                        .slice(0, 25)
+                        .map((u, i) => {
+                          const rank = rankTiers.find(r => r.id === u.current_rank_id);
+                          const earned = allMlm.filter((c: any) => c.referrer_id === u.user_id).reduce((s: number, c: any) => s + Number(c.amount), 0);
+                          return (
+                            <tr key={i} className="border-b border-border/50">
+                              <td className="p-2"><p className="font-medium text-foreground">{u.full_name}</p><p className="text-[10px] text-muted-foreground">{u.email}</p></td>
+                              <td className="p-2">{rank ? <Badge style={{ backgroundColor: `${rank.badge_color}30`, color: rank.badge_color, borderColor: rank.badge_color }} variant="outline">{rank.name}</Badge> : <span className="text-muted-foreground text-xs">—</span>}</td>
+                              <td className="p-2 text-right text-foreground">{u.direct_referrals_count || 0}</td>
+                              <td className="p-2 text-right text-foreground">{u.team_size || 0}</td>
+                              <td className="p-2 text-right text-foreground">${Number(u.team_volume || 0).toFixed(0)}</td>
+                              <td className="p-2 text-right text-emerald-700 dark:text-emerald-400 font-semibold">${earned.toFixed(2)}</td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                  {users.length === 0 && <p className="text-center text-muted-foreground py-4 text-sm">No users yet</p>}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border">
+              <CardHeader><CardTitle className="text-base font-display text-foreground">Rank Tiers</CardTitle></CardHeader>
+              <CardContent>
+                <div className="grid gap-3">
+                  {rankTiers.map((r: any) => (
+                    <div key={r.id} className="p-3 rounded-lg border border-border flex items-center justify-between gap-3 flex-wrap">
+                      {editingRank?.id === r.id ? (
+                        <>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1">
+                            <Input value={editingRank.name} onChange={e => setEditingRank({ ...editingRank, name: e.target.value })} placeholder="Name" />
+                            <Input type="number" value={editingRank.min_direct_referrals} onChange={e => setEditingRank({ ...editingRank, min_direct_referrals: Number(e.target.value) })} placeholder="Directs" />
+                            <Input type="number" value={editingRank.min_team_size} onChange={e => setEditingRank({ ...editingRank, min_team_size: Number(e.target.value) })} placeholder="Team" />
+                            <Input type="number" value={editingRank.min_team_volume_usd} onChange={e => setEditingRank({ ...editingRank, min_team_volume_usd: Number(e.target.value) })} placeholder="Volume" />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={async () => {
+                              const sb = supabase as any;
+                              const { error } = await sb.from('rank_tiers').update({
+                                name: editingRank.name,
+                                min_direct_referrals: editingRank.min_direct_referrals,
+                                min_team_size: editingRank.min_team_size,
+                                min_team_volume_usd: editingRank.min_team_volume_usd,
+                              }).eq('id', editingRank.id);
+                              if (error) toast.error(error.message); else { toast.success('Rank updated'); setEditingRank(null); fetchAll(); }
+                            }}>Save</Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingRank(null)}>Cancel</Button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <Badge style={{ backgroundColor: `${r.badge_color}30`, color: r.badge_color, borderColor: r.badge_color }} variant="outline">{r.name}</Badge>
+                            <div className="text-xs text-muted-foreground">
+                              {r.min_direct_referrals} directs · {r.min_team_size} team · ${Number(r.min_team_volume_usd).toLocaleString()}
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline" onClick={() => setEditingRank(r)}>Edit</Button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-3">Note: Commission rates per level (L1=10%, L2=3%, L3=3%, L4=2%, L5=2%) are fixed in code for safety.</p>
               </CardContent>
             </Card>
           </div>
