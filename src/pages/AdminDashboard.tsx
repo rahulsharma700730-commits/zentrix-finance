@@ -79,6 +79,7 @@ const AdminDashboard = () => {
   const [selectedUserReferrals, setSelectedUserReferrals] = useState<any[]>([]);
   const [filterTab, setFilterTab] = useState('all');
 
+  const [editingRank, setEditingRank] = useState<any>(null);
   const [notifTitle, setNotifTitle] = useState('');
   const [notifMessage, setNotifMessage] = useState('');
   const [notifTarget, setNotifTarget] = useState('all');
