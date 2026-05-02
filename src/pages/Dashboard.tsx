@@ -37,8 +37,10 @@ const Dashboard = () => {
   const [investments, setInvestments] = useState<any[]>([]);
   const [earnings, setEarnings] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
-  const [commissions, setCommissions] = useState<any[]>([]);
-  const [referrals, setReferrals] = useState<any[]>([]);
+  const [commissions, setCommissions] = useState<any[]>([]); // legacy referral_commissions (history)
+  const [mlmCommissions, setMlmCommissions] = useState<any[]>([]);
+  const [downline, setDownline] = useState<any[]>([]); // flat array with .level
+  const [rankTiers, setRankTiers] = useState<any[]>([]);
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [siteSettings, setSiteSettings] = useState<any>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
