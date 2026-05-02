@@ -66,6 +66,8 @@ const AdminDashboard = () => {
   const [allInvestments, setAllInvestments] = useState<any[]>([]);
   const [allWithdrawals, setAllWithdrawals] = useState<any[]>([]);
   const [allCommissions, setAllCommissions] = useState<any[]>([]);
+  const [allMlm, setAllMlm] = useState<any[]>([]);
+  const [rankTiers, setRankTiers] = useState<any[]>([]);
   const [allTickets, setAllTickets] = useState<any[]>([]);
   const [siteSettings, setSiteSettings] = useState<any>(null);
   const [usdtAddress, setUsdtAddress] = useState('');
@@ -149,13 +151,16 @@ const AdminDashboard = () => {
   }, [user, isAdmin]);
 
   const fetchAll = async () => {
-    const [usersRes, invRes, wdRes, settingsRes, commRes, ticketsRes] = await Promise.all([
+    const sb = supabase as any;
+    const [usersRes, invRes, wdRes, settingsRes, commRes, ticketsRes, mlmRes, ranksRes] = await Promise.all([
       supabase.from('profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('investments').select('*').order('created_at', { ascending: false }),
       supabase.from('withdrawals').select('*').order('created_at', { ascending: false }),
       supabase.from('site_settings').select('*').limit(1).single(),
       supabase.from('referral_commissions').select('*').order('created_at', { ascending: false }),
       supabase.from('support_tickets').select('*').order('created_at', { ascending: false }),
+      sb.from('mlm_commissions').select('*').order('created_at', { ascending: false }),
+      sb.from('rank_tiers').select('*').order('sort_order', { ascending: true }),
     ]);
     setUsers(usersRes.data || []);
     setAllInvestments(invRes.data || []);
@@ -164,6 +169,8 @@ const AdminDashboard = () => {
     setUsdtAddress(settingsRes.data?.usdt_address || '');
     setAllCommissions(commRes.data || []);
     setAllTickets(ticketsRes.data || []);
+    setAllMlm(mlmRes.data || []);
+    setRankTiers(ranksRes.data || []);
   };
 
   // Realtime subscriptions — push live updates to admin dashboard
