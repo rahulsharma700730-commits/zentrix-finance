@@ -112,6 +112,14 @@ const AdminDashboard = () => {
   // USDT save confirmation
   const [confirmSaveUsdt, setConfirmSaveUsdt] = useState(false);
 
+  // Mark Sent dialog
+  const [sendingWdId, setSendingWdId] = useState<string | null>(null);
+  const [sendTxHash, setSendTxHash] = useState('');
+
+  // Audit log viewer
+  const [auditWdId, setAuditWdId] = useState<string | null>(null);
+  const [auditEntries, setAuditEntries] = useState<any[]>([]);
+
   // Sidebar section + PWA install
   const [section, setSection] = useState<AdminSection>('overview');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -343,6 +351,64 @@ const AdminDashboard = () => {
     }
   };
 
+  // Mark withdrawal as USDT Sent (with tx hash)
+  const handleMarkSent = async () => {
+    if (!sendingWdId || !user) return;
+    if (!sendTxHash.trim() || sendTxHash.trim().length < 10) { toast.error('Enter a valid USDT BEP20 transaction hash'); return; }
+    const { error } = await supabase.from('withdrawals').update({
+      status: 'sent' as any, tx_hash: sendTxHash.trim(), sent_at: new Date().toISOString(), processed_by: user.id,
+    } as any).eq('id', sendingWdId);
+    if (error) { toast.error(error.message); return; }
+    const wd = allWithdrawals.find(w => w.id === sendingWdId);
+    if (wd) {
+      await supabase.from('notifications').insert({
+        user_id: wd.user_id, title: 'USDT Sent',
+        message: `Your withdrawal of $${Number(wd.amount).toFixed(2)} has been sent. TX: ${sendTxHash.trim().slice(0, 20)}...`,
+      });
+    }
+    toast.success('Marked as sent');
+    setSendingWdId(null); setSendTxHash('');
+    fetchAll();
+  };
+
+  // Mark as Confirmed (final state)
+  const markConfirmed = async (id: string) => {
+    if (!user) return;
+    const { error } = await supabase.from('withdrawals').update({
+      status: 'confirmed' as any, confirmed_at: new Date().toISOString(), processed_by: user.id,
+    } as any).eq('id', id);
+    if (error) { toast.error(error.message); return; }
+    const wd = allWithdrawals.find(w => w.id === id);
+    if (wd) {
+      await supabase.from('notifications').insert({
+        user_id: wd.user_id, title: 'Withdrawal Confirmed',
+        message: `Your withdrawal of $${Number(wd.amount).toFixed(2)} has been confirmed on-chain.`,
+      });
+    }
+    toast.success('Confirmed');
+    fetchAll();
+  };
+
+  // View audit log
+  const openAuditLog = async (wdId: string) => {
+    setAuditWdId(wdId);
+    const { data } = await (supabase as any).from('withdrawal_audit_log')
+      .select('*').eq('withdrawal_id', wdId).order('created_at', { ascending: true });
+    setAuditEntries((data as any[]) || []);
+  };
+
+  // SLA helper
+  const slaInfo = (wd: any) => {
+    if (!wd.sla_due_at || ['confirmed', 'rejected'].includes(wd.status)) return null;
+    const due = new Date(wd.sla_due_at).getTime();
+    const now = Date.now();
+    const remainingMs = due - now;
+    const breached = remainingMs < 0;
+    const hrs = Math.floor(Math.abs(remainingMs) / 3600000);
+    const mins = Math.floor((Math.abs(remainingMs) % 3600000) / 60000);
+    return { breached, label: breached ? `SLA breached ${hrs}h ${mins}m ago` : `${hrs}h ${mins}m left` };
+  };
+
   // Open block dialog (unblock is one-click confirm; block requires reason)
   const openBlockDialog = (u: any) => {
     setBlockingUser(u);
@@ -500,6 +566,8 @@ const AdminDashboard = () => {
       open: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
       resolved: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
       closed: 'bg-muted text-muted-foreground border-border',
+      sent: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30',
+      on_hold: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30',
     };
     return <Badge variant="outline" className={colors[status] || 'border-border text-muted-foreground'}>{status}</Badge>;
   };
@@ -574,7 +642,59 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // BLOCK / UNBLOCK DIALOG
+  // MARK USDT SENT DIALOG
+  const sendDialog = sendingWdId && (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md border-border bg-card">
+        <CardHeader><CardTitle className="text-base font-display text-foreground">Mark USDT as Sent</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">Enter the BEP20 transaction hash for the USDT payment. This will move the withdrawal to "Sent" status.</p>
+          <div className="space-y-2">
+            <Label className="text-foreground">BEP20 TX Hash</Label>
+            <Input value={sendTxHash} onChange={e => setSendTxHash(e.target.value)} placeholder="0x..." className="bg-background font-mono text-xs" />
+          </div>
+          <div className="flex gap-2">
+            <Button className="flex-1 h-10 bg-blue-600 hover:bg-blue-700 text-white" onClick={handleMarkSent}>Mark Sent</Button>
+            <Button variant="outline" className="flex-1 h-10" onClick={() => { setSendingWdId(null); setSendTxHash(''); }}>Cancel</Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  // AUDIT LOG DIALOG
+  const auditDialog = auditWdId && (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setAuditWdId(null)}>
+      <Card className="w-full max-w-lg border-border bg-card max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <CardHeader>
+          <CardTitle className="text-base font-display text-foreground">Withdrawal Audit Log</CardTitle>
+          <p className="text-[10px] text-muted-foreground">Full chain of status changes — requested → approved → sent → confirmed.</p>
+        </CardHeader>
+        <CardContent>
+          {auditEntries.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">No entries yet.</p>
+          ) : (
+            <ol className="relative border-l border-border ml-3 space-y-4">
+              {auditEntries.map((e: any) => (
+                <li key={e.id} className="ml-4">
+                  <div className="absolute -left-1.5 w-3 h-3 rounded-full bg-primary border-2 border-background" />
+                  <p className="text-xs text-muted-foreground">{new Date(e.created_at).toLocaleString()}</p>
+                  <p className="text-sm text-foreground">
+                    <span className="font-medium">{e.from_status || '—'}</span> → <span className="font-semibold text-amber-700 dark:text-amber-400">{e.to_status}</span>
+                  </p>
+                  {e.note && <p className="text-xs text-muted-foreground mt-0.5">{e.note}</p>}
+                  {e.tx_hash && <p className="text-[10px] font-mono text-muted-foreground truncate">TX: {e.tx_hash}</p>}
+                  {e.actor_id && <p className="text-[10px] text-muted-foreground">By: {getUserName(e.actor_id) || e.actor_id.slice(0, 8)}</p>}
+                </li>
+              ))}
+            </ol>
+          )}
+          <Button variant="outline" className="w-full mt-4 h-10" onClick={() => setAuditWdId(null)}>Close</Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   const blockDialog = (
     <AlertDialog open={!!blockingUser} onOpenChange={(o) => { if (!o) { setBlockingUser(null); setBlockReason(''); } }}>
       <AlertDialogContent>
@@ -651,6 +771,8 @@ const AdminDashboard = () => {
         {holdDialog}
         {blockDialog}
         {usdtConfirmDialog}
+        {sendDialog}
+        {auditDialog}
         <div className="container mx-auto px-3 sm:px-4 pt-4 pb-12">
           <Button variant="ghost" className="mb-4 text-muted-foreground" onClick={() => setSelectedUser(null)}>
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Admin
@@ -886,6 +1008,8 @@ const AdminDashboard = () => {
           {holdDialog}
           {blockDialog}
           {usdtConfirmDialog}
+          {sendDialog}
+          {auditDialog}
           <main className="p-3 sm:p-5 pb-20">
 
         {/* Overview header strip */}
@@ -1183,11 +1307,14 @@ const AdminDashboard = () => {
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Wallet</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs hidden sm:table-cell">Date</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Status</th>
-                  <th className="text-left p-2 text-muted-foreground font-medium text-xs hidden sm:table-cell">Reason</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs">SLA (5h)</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs hidden md:table-cell">TX</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Actions</th>
                 </tr></thead><tbody>
-                  {allWithdrawals.slice(0, 100).map(wd => (
-                    <tr key={wd.id} className="border-b border-border/50 hover:bg-muted/20">
+                  {allWithdrawals.slice(0, 100).map(wd => {
+                    const sla = slaInfo(wd);
+                    return (
+                    <tr key={wd.id} className={`border-b border-border/50 hover:bg-muted/20 ${sla?.breached ? 'bg-red-500/5' : ''}`}>
                       <td className="p-2"><p className="text-foreground text-xs font-medium">{getUserName(wd.user_id)}</p><p className="text-[10px] text-muted-foreground">{getUserEmail(wd.user_id)}</p></td>
                       <td className="p-2 font-semibold text-foreground text-xs">${Number(wd.amount).toFixed(2)}</td>
                       <td className="p-2">
@@ -1198,18 +1325,42 @@ const AdminDashboard = () => {
                       </td>
                       <td className="p-2 text-muted-foreground text-xs hidden sm:table-cell">{new Date(wd.created_at).toLocaleDateString()}</td>
                       <td className="p-2">{statusBadge(wd.status)}</td>
-                      <td className="p-2 text-xs text-destructive hidden sm:table-cell max-w-[100px] truncate">{wd.rejection_reason || '-'}</td>
-                      <td className="p-2">
-                        {wd.status === 'pending' && (
-                          <div className="flex gap-1 flex-wrap">
-                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-[10px] px-2" onClick={() => approveWithdrawal(wd.id)}>✓</Button>
-                            <Button size="sm" variant="destructive" className="h-7 text-[10px] px-2" onClick={() => openRejectDialog(wd.id, 'withdrawal')}>✗</Button>
-                            <Button size="sm" variant="outline" className="h-7 text-[10px] px-2 border-amber-500/30 text-amber-700 dark:text-amber-400" onClick={() => setHoldingWdId(wd.id)}>⏸</Button>
+                      <td className="p-2 text-[10px]">
+                        {sla ? (
+                          <span className={sla.breached ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-emerald-600 dark:text-emerald-400'}>
+                            {sla.label}
+                          </span>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className="p-2 hidden md:table-cell">
+                        {wd.tx_hash ? (
+                          <div className="flex items-center gap-1">
+                            <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[60px]">{wd.tx_hash}</span>
+                            <CopyBtn text={wd.tx_hash} />
                           </div>
-                        )}
+                        ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                      </td>
+                      <td className="p-2">
+                        <div className="flex gap-1 flex-wrap">
+                          {wd.status === 'pending' && (
+                            <>
+                              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-[10px] px-2" onClick={() => approveWithdrawal(wd.id)} title="Approve">✓</Button>
+                              <Button size="sm" variant="destructive" className="h-7 text-[10px] px-2" onClick={() => openRejectDialog(wd.id, 'withdrawal')} title="Reject">✗</Button>
+                              <Button size="sm" variant="outline" className="h-7 text-[10px] px-2 border-amber-500/30 text-amber-700 dark:text-amber-400" onClick={() => setHoldingWdId(wd.id)} title="Hold">⏸</Button>
+                            </>
+                          )}
+                          {wd.status === 'approved' && (
+                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white h-7 text-[10px] px-2" onClick={() => { setSendingWdId(wd.id); setSendTxHash(''); }} title="Mark USDT Sent">Send</Button>
+                          )}
+                          {wd.status === 'sent' && (
+                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-[10px] px-2" onClick={() => markConfirmed(wd.id)} title="Confirm">Confirm</Button>
+                          )}
+                          <Button size="sm" variant="outline" className="h-7 text-[10px] px-2" onClick={() => openAuditLog(wd.id)} title="Audit log">Log</Button>
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody></table>
               </div></CardContent>
             </Card>
