@@ -769,6 +769,8 @@ const AdminDashboard = () => {
         {holdDialog}
         {blockDialog}
         {usdtConfirmDialog}
+        {sendDialog}
+        {auditDialog}
         <div className="container mx-auto px-3 sm:px-4 pt-4 pb-12">
           <Button variant="ghost" className="mb-4 text-muted-foreground" onClick={() => setSelectedUser(null)}>
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Admin
