@@ -1249,11 +1249,14 @@ const AdminDashboard = () => {
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Wallet</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs hidden sm:table-cell">Date</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Status</th>
-                  <th className="text-left p-2 text-muted-foreground font-medium text-xs hidden sm:table-cell">Reason</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs">SLA (5h)</th>
+                  <th className="text-left p-2 text-muted-foreground font-medium text-xs hidden md:table-cell">TX</th>
                   <th className="text-left p-2 text-muted-foreground font-medium text-xs">Actions</th>
                 </tr></thead><tbody>
-                  {allWithdrawals.slice(0, 100).map(wd => (
-                    <tr key={wd.id} className="border-b border-border/50 hover:bg-muted/20">
+                  {allWithdrawals.slice(0, 100).map(wd => {
+                    const sla = slaInfo(wd);
+                    return (
+                    <tr key={wd.id} className={`border-b border-border/50 hover:bg-muted/20 ${sla?.breached ? 'bg-red-500/5' : ''}`}>
                       <td className="p-2"><p className="text-foreground text-xs font-medium">{getUserName(wd.user_id)}</p><p className="text-[10px] text-muted-foreground">{getUserEmail(wd.user_id)}</p></td>
                       <td className="p-2 font-semibold text-foreground text-xs">${Number(wd.amount).toFixed(2)}</td>
                       <td className="p-2">
@@ -1264,18 +1267,42 @@ const AdminDashboard = () => {
                       </td>
                       <td className="p-2 text-muted-foreground text-xs hidden sm:table-cell">{new Date(wd.created_at).toLocaleDateString()}</td>
                       <td className="p-2">{statusBadge(wd.status)}</td>
-                      <td className="p-2 text-xs text-destructive hidden sm:table-cell max-w-[100px] truncate">{wd.rejection_reason || '-'}</td>
-                      <td className="p-2">
-                        {wd.status === 'pending' && (
-                          <div className="flex gap-1 flex-wrap">
-                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-[10px] px-2" onClick={() => approveWithdrawal(wd.id)}>✓</Button>
-                            <Button size="sm" variant="destructive" className="h-7 text-[10px] px-2" onClick={() => openRejectDialog(wd.id, 'withdrawal')}>✗</Button>
-                            <Button size="sm" variant="outline" className="h-7 text-[10px] px-2 border-amber-500/30 text-amber-700 dark:text-amber-400" onClick={() => setHoldingWdId(wd.id)}>⏸</Button>
+                      <td className="p-2 text-[10px]">
+                        {sla ? (
+                          <span className={sla.breached ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-emerald-600 dark:text-emerald-400'}>
+                            {sla.label}
+                          </span>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className="p-2 hidden md:table-cell">
+                        {wd.tx_hash ? (
+                          <div className="flex items-center gap-1">
+                            <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[60px]">{wd.tx_hash}</span>
+                            <CopyBtn text={wd.tx_hash} />
                           </div>
-                        )}
+                        ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                      </td>
+                      <td className="p-2">
+                        <div className="flex gap-1 flex-wrap">
+                          {wd.status === 'pending' && (
+                            <>
+                              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-[10px] px-2" onClick={() => approveWithdrawal(wd.id)} title="Approve">✓</Button>
+                              <Button size="sm" variant="destructive" className="h-7 text-[10px] px-2" onClick={() => openRejectDialog(wd.id, 'withdrawal')} title="Reject">✗</Button>
+                              <Button size="sm" variant="outline" className="h-7 text-[10px] px-2 border-amber-500/30 text-amber-700 dark:text-amber-400" onClick={() => setHoldingWdId(wd.id)} title="Hold">⏸</Button>
+                            </>
+                          )}
+                          {wd.status === 'approved' && (
+                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white h-7 text-[10px] px-2" onClick={() => { setSendingWdId(wd.id); setSendTxHash(''); }} title="Mark USDT Sent">Send</Button>
+                          )}
+                          {wd.status === 'sent' && (
+                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-[10px] px-2" onClick={() => markConfirmed(wd.id)} title="Confirm">Confirm</Button>
+                          )}
+                          <Button size="sm" variant="outline" className="h-7 text-[10px] px-2" onClick={() => openAuditLog(wd.id)} title="Audit log">Log</Button>
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody></table>
               </div></CardContent>
             </Card>
