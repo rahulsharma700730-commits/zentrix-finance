@@ -566,6 +566,8 @@ const AdminDashboard = () => {
       open: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
       resolved: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
       closed: 'bg-muted text-muted-foreground border-border',
+      sent: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30',
+      on_hold: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30',
     };
     return <Badge variant="outline" className={colors[status] || 'border-border text-muted-foreground'}>{status}</Badge>;
   };
