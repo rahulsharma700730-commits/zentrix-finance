@@ -640,7 +640,59 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // BLOCK / UNBLOCK DIALOG
+  // MARK USDT SENT DIALOG
+  const sendDialog = sendingWdId && (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md border-border bg-card">
+        <CardHeader><CardTitle className="text-base font-display text-foreground">Mark USDT as Sent</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">Enter the BEP20 transaction hash for the USDT payment. This will move the withdrawal to "Sent" status.</p>
+          <div className="space-y-2">
+            <Label className="text-foreground">BEP20 TX Hash</Label>
+            <Input value={sendTxHash} onChange={e => setSendTxHash(e.target.value)} placeholder="0x..." className="bg-background font-mono text-xs" />
+          </div>
+          <div className="flex gap-2">
+            <Button className="flex-1 h-10 bg-blue-600 hover:bg-blue-700 text-white" onClick={handleMarkSent}>Mark Sent</Button>
+            <Button variant="outline" className="flex-1 h-10" onClick={() => { setSendingWdId(null); setSendTxHash(''); }}>Cancel</Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  // AUDIT LOG DIALOG
+  const auditDialog = auditWdId && (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setAuditWdId(null)}>
+      <Card className="w-full max-w-lg border-border bg-card max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <CardHeader>
+          <CardTitle className="text-base font-display text-foreground">Withdrawal Audit Log</CardTitle>
+          <p className="text-[10px] text-muted-foreground">Full chain of status changes — requested → approved → sent → confirmed.</p>
+        </CardHeader>
+        <CardContent>
+          {auditEntries.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">No entries yet.</p>
+          ) : (
+            <ol className="relative border-l border-border ml-3 space-y-4">
+              {auditEntries.map((e: any) => (
+                <li key={e.id} className="ml-4">
+                  <div className="absolute -left-1.5 w-3 h-3 rounded-full bg-primary border-2 border-background" />
+                  <p className="text-xs text-muted-foreground">{new Date(e.created_at).toLocaleString()}</p>
+                  <p className="text-sm text-foreground">
+                    <span className="font-medium">{e.from_status || '—'}</span> → <span className="font-semibold text-amber-700 dark:text-amber-400">{e.to_status}</span>
+                  </p>
+                  {e.note && <p className="text-xs text-muted-foreground mt-0.5">{e.note}</p>}
+                  {e.tx_hash && <p className="text-[10px] font-mono text-muted-foreground truncate">TX: {e.tx_hash}</p>}
+                  {e.actor_id && <p className="text-[10px] text-muted-foreground">By: {getUserName(e.actor_id) || e.actor_id.slice(0, 8)}</p>}
+                </li>
+              ))}
+            </ol>
+          )}
+          <Button variant="outline" className="w-full mt-4 h-10" onClick={() => setAuditWdId(null)}>Close</Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   const blockDialog = (
     <AlertDialog open={!!blockingUser} onOpenChange={(o) => { if (!o) { setBlockingUser(null); setBlockReason(''); } }}>
       <AlertDialogContent>
