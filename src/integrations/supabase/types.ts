@@ -415,39 +415,84 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawal_audit_log: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string | null
+          to_status: string
+          tx_hash: string | null
+          withdrawal_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status: string
+          tx_hash?: string | null
+          withdrawal_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string
+          tx_hash?: string | null
+          withdrawal_id?: string
+        }
+        Relationships: []
+      }
       withdrawals: {
         Row: {
           amount: number
+          confirmed_at: string | null
           created_at: string
           id: string
           processed_at: string | null
           processed_by: string | null
           rejection_reason: string | null
+          sent_at: string | null
+          sla_due_at: string | null
           status: Database["public"]["Enums"]["withdrawal_status"]
+          tx_hash: string | null
           updated_at: string
           user_id: string
           wallet_address: string
         }
         Insert: {
           amount: number
+          confirmed_at?: string | null
           created_at?: string
           id?: string
           processed_at?: string | null
           processed_by?: string | null
           rejection_reason?: string | null
+          sent_at?: string | null
+          sla_due_at?: string | null
           status?: Database["public"]["Enums"]["withdrawal_status"]
+          tx_hash?: string | null
           updated_at?: string
           user_id: string
           wallet_address: string
         }
         Update: {
           amount?: number
+          confirmed_at?: string | null
           created_at?: string
           id?: string
           processed_at?: string | null
           processed_by?: string | null
           rejection_reason?: string | null
+          sent_at?: string | null
+          sla_due_at?: string | null
           status?: Database["public"]["Enums"]["withdrawal_status"]
+          tx_hash?: string | null
           updated_at?: string
           user_id?: string
           wallet_address?: string
@@ -485,7 +530,13 @@ export type Database = {
         | "referral_commission"
         | "daily_earning"
         | "mlm_commission"
-      withdrawal_status: "pending" | "approved" | "rejected"
+      withdrawal_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "sent"
+        | "confirmed"
+        | "on_hold"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -622,7 +673,14 @@ export const Constants = {
         "daily_earning",
         "mlm_commission",
       ],
-      withdrawal_status: ["pending", "approved", "rejected"],
+      withdrawal_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "sent",
+        "confirmed",
+        "on_hold",
+      ],
     },
   },
 } as const
