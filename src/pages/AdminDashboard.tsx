@@ -351,6 +351,64 @@ const AdminDashboard = () => {
     }
   };
 
+  // Mark withdrawal as USDT Sent (with tx hash)
+  const handleMarkSent = async () => {
+    if (!sendingWdId || !user) return;
+    if (!sendTxHash.trim() || sendTxHash.trim().length < 10) { toast.error('Enter a valid USDT BEP20 transaction hash'); return; }
+    const { error } = await supabase.from('withdrawals').update({
+      status: 'sent' as any, tx_hash: sendTxHash.trim(), sent_at: new Date().toISOString(), processed_by: user.id,
+    } as any).eq('id', sendingWdId);
+    if (error) { toast.error(error.message); return; }
+    const wd = allWithdrawals.find(w => w.id === sendingWdId);
+    if (wd) {
+      await supabase.from('notifications').insert({
+        user_id: wd.user_id, title: 'USDT Sent',
+        message: `Your withdrawal of $${Number(wd.amount).toFixed(2)} has been sent. TX: ${sendTxHash.trim().slice(0, 20)}...`,
+      });
+    }
+    toast.success('Marked as sent');
+    setSendingWdId(null); setSendTxHash('');
+    fetchAll();
+  };
+
+  // Mark as Confirmed (final state)
+  const markConfirmed = async (id: string) => {
+    if (!user) return;
+    const { error } = await supabase.from('withdrawals').update({
+      status: 'confirmed' as any, confirmed_at: new Date().toISOString(), processed_by: user.id,
+    } as any).eq('id', id);
+    if (error) { toast.error(error.message); return; }
+    const wd = allWithdrawals.find(w => w.id === id);
+    if (wd) {
+      await supabase.from('notifications').insert({
+        user_id: wd.user_id, title: 'Withdrawal Confirmed',
+        message: `Your withdrawal of $${Number(wd.amount).toFixed(2)} has been confirmed on-chain.`,
+      });
+    }
+    toast.success('Confirmed');
+    fetchAll();
+  };
+
+  // View audit log
+  const openAuditLog = async (wdId: string) => {
+    setAuditWdId(wdId);
+    const { data } = await (supabase as any).from('withdrawal_audit_log')
+      .select('*').eq('withdrawal_id', wdId).order('created_at', { ascending: true });
+    setAuditEntries((data as any[]) || []);
+  };
+
+  // SLA helper
+  const slaInfo = (wd: any) => {
+    if (!wd.sla_due_at || ['confirmed', 'rejected'].includes(wd.status)) return null;
+    const due = new Date(wd.sla_due_at).getTime();
+    const now = Date.now();
+    const remainingMs = due - now;
+    const breached = remainingMs < 0;
+    const hrs = Math.floor(Math.abs(remainingMs) / 3600000);
+    const mins = Math.floor((Math.abs(remainingMs) % 3600000) / 60000);
+    return { breached, label: breached ? `SLA breached ${hrs}h ${mins}m ago` : `${hrs}h ${mins}m left` };
+  };
+
   // Open block dialog (unblock is one-click confirm; block requires reason)
   const openBlockDialog = (u: any) => {
     setBlockingUser(u);
