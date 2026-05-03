@@ -112,6 +112,14 @@ const AdminDashboard = () => {
   // USDT save confirmation
   const [confirmSaveUsdt, setConfirmSaveUsdt] = useState(false);
 
+  // Mark Sent dialog
+  const [sendingWdId, setSendingWdId] = useState<string | null>(null);
+  const [sendTxHash, setSendTxHash] = useState('');
+
+  // Audit log viewer
+  const [auditWdId, setAuditWdId] = useState<string | null>(null);
+  const [auditEntries, setAuditEntries] = useState<any[]>([]);
+
   // Sidebar section + PWA install
   const [section, setSection] = useState<AdminSection>('overview');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
