@@ -212,6 +212,50 @@ const Dashboard = () => {
     });
   }, [downline, mlmCommissions]);
 
+  // Daily network earnings trend (last 30 days) — stacked by level
+  const networkTrend = useMemo(() => {
+    const days = 30;
+    const map: Record<string, any> = {};
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      map[key] = { date: key, L1: 0, L2: 0, L3: 0, L4: 0, L5: 0, total: 0 };
+    }
+    mlmCommissions.forEach((c: any) => {
+      const key = (c.earned_date || c.created_at?.slice(0, 10));
+      if (map[key]) {
+        map[key][`L${c.level}`] += Number(c.amount);
+        map[key].total += Number(c.amount);
+      }
+    });
+    return Object.values(map);
+  }, [mlmCommissions]);
+
+  // Cumulative network earnings
+  const networkCumulative = useMemo(() => {
+    let cum = 0;
+    return (networkTrend as any[]).map(d => { cum += d.total; return { date: d.date, cumulative: Number(cum.toFixed(3)) }; });
+  }, [networkTrend]);
+
+  // Team composition by level (for radial / bar)
+  const teamComposition = useMemo(() =>
+    levelStats.map(s => ({ name: `Level ${s.level}`, members: s.members, volume: Number(s.invested.toFixed(2)), earned: Number(s.earned.toFixed(3)) })),
+  [levelStats]);
+
+  // Rank progression — show all tiers w/ user position
+  const rankProgression = useMemo(() => {
+    const sorted = [...rankTiers].sort((a, b) => a.sort_order - b.sort_order);
+    return sorted.map(r => {
+      const reqVol = Number(r.min_team_volume_usd);
+      const volPct = reqVol > 0 ? Math.min((teamVolume / reqVol) * 100, 100) : 100;
+      const sizePct = r.min_team_size > 0 ? Math.min((teamSize / r.min_team_size) * 100, 100) : 100;
+      const dirPct = r.min_direct_referrals > 0 ? Math.min((directWithInvestment / r.min_direct_referrals) * 100, 100) : 100;
+      const overall = Math.round((volPct + sizePct + dirPct) / 3);
+      const achieved = directWithInvestment >= r.min_direct_referrals && teamSize >= r.min_team_size && teamVolume >= reqVol;
+      return { name: r.name, color: r.badge_color, overall, achieved };
+    });
+  }, [rankTiers, teamSize, teamVolume, directWithInvestment]);
+
   // Account / cycle metadata
   const confirmedInvs = useMemo(() => investments.filter(i => i.status === 'confirmed'), [investments]);
   const firstConfirmed = useMemo(() => {
