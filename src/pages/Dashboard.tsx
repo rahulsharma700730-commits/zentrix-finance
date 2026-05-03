@@ -1119,7 +1119,7 @@ const Dashboard = () => {
                           ...investments.map(i => ({ type: 'Deposit', amount: Number(i.amount), date: i.created_at, status: i.status })),
                           ...withdrawals.map(w => ({ type: 'Withdrawal', amount: -Number(w.amount), date: w.created_at, status: w.status })),
                           ...commissions.map(c => ({ type: 'Referral', amount: Number(c.amount), date: c.created_at, status: 'confirmed' })),
-                          ...mlmCommissions.map((c: any) => ({ type: `MLM L${c.level}`, amount: Number(c.amount), date: c.created_at, status: 'confirmed' })),
+                          ...mlmCommissions.map((c: any) => ({ type: `Network L${c.level}`, amount: Number(c.amount), date: c.created_at, status: 'confirmed' })),
                         ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((tx, i) => (
                           <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                             <td className="p-2 sm:p-3"><div className="flex items-center gap-2">
