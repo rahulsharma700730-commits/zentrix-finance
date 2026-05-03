@@ -212,6 +212,50 @@ const Dashboard = () => {
     });
   }, [downline, mlmCommissions]);
 
+  // Daily network earnings trend (last 30 days) — stacked by level
+  const networkTrend = useMemo(() => {
+    const days = 30;
+    const map: Record<string, any> = {};
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      map[key] = { date: key, L1: 0, L2: 0, L3: 0, L4: 0, L5: 0, total: 0 };
+    }
+    mlmCommissions.forEach((c: any) => {
+      const key = (c.earned_date || c.created_at?.slice(0, 10));
+      if (map[key]) {
+        map[key][`L${c.level}`] += Number(c.amount);
+        map[key].total += Number(c.amount);
+      }
+    });
+    return Object.values(map);
+  }, [mlmCommissions]);
+
+  // Cumulative network earnings
+  const networkCumulative = useMemo(() => {
+    let cum = 0;
+    return (networkTrend as any[]).map(d => { cum += d.total; return { date: d.date, cumulative: Number(cum.toFixed(3)) }; });
+  }, [networkTrend]);
+
+  // Team composition by level (for radial / bar)
+  const teamComposition = useMemo(() =>
+    levelStats.map(s => ({ name: `Level ${s.level}`, members: s.members, volume: Number(s.invested.toFixed(2)), earned: Number(s.earned.toFixed(3)) })),
+  [levelStats]);
+
+  // Rank progression — show all tiers w/ user position
+  const rankProgression = useMemo(() => {
+    const sorted = [...rankTiers].sort((a, b) => a.sort_order - b.sort_order);
+    return sorted.map(r => {
+      const reqVol = Number(r.min_team_volume_usd);
+      const volPct = reqVol > 0 ? Math.min((teamVolume / reqVol) * 100, 100) : 100;
+      const sizePct = r.min_team_size > 0 ? Math.min((teamSize / r.min_team_size) * 100, 100) : 100;
+      const dirPct = r.min_direct_referrals > 0 ? Math.min((directWithInvestment / r.min_direct_referrals) * 100, 100) : 100;
+      const overall = Math.round((volPct + sizePct + dirPct) / 3);
+      const achieved = directWithInvestment >= r.min_direct_referrals && teamSize >= r.min_team_size && teamVolume >= reqVol;
+      return { name: r.name, color: r.badge_color, overall, achieved };
+    });
+  }, [rankTiers, teamSize, teamVolume, directWithInvestment]);
+
   // Account / cycle metadata
   const confirmedInvs = useMemo(() => investments.filter(i => i.status === 'confirmed'), [investments]);
   const firstConfirmed = useMemo(() => {
@@ -739,7 +783,7 @@ const Dashboard = () => {
               </Card>
             )}
 
-            {/* REFERRAL / MLM */}
+            {/* REFERRAL / NETWORK */}
             {section === 'referral' && (
               <div className="space-y-6">
                 {/* Code + summary */}
@@ -748,7 +792,7 @@ const Dashboard = () => {
                     <CardHeader><CardTitle className="text-base font-display text-foreground">Your Referral Code</CardTitle></CardHeader>
                     <CardContent>
                       <div className="p-5 rounded-xl bg-gradient-gold-subtle border border-primary/20 mb-4 text-center">
-                        <p className="text-xs text-muted-foreground mb-2 font-medium">Build your team — earn on 5 levels of daily ROI:</p>
+                        <p className="text-xs text-muted-foreground mb-2 font-medium">Build your network — earn on 5 levels of daily ROI:</p>
                         <div className="text-2xl sm:text-3xl font-display font-bold text-amber-700 dark:text-amber-400 tracking-widest mb-3">{profile?.referral_code || '---'}</div>
                         <Button variant="outline" size="sm" className="border-primary/30" onClick={() => profile?.referral_code && copyToClipboard(profile.referral_code)}>
                           <Copy className="w-3 h-3 mr-1" /> Copy Code
@@ -775,8 +819,8 @@ const Dashboard = () => {
                           <div className="text-[10px] text-muted-foreground">Team (5 lvl)</div>
                         </div>
                         <div className="text-center p-3 rounded-xl bg-muted/50 border border-border">
-                          <div className="text-lg font-display font-bold text-amber-700 dark:text-amber-400">${totalMlm.toFixed(2)}</div>
-                          <div className="text-[10px] text-muted-foreground">MLM Earned</div>
+                          <div className="text-lg font-display font-bold text-amber-700 dark:text-amber-400">${totalMlm.toFixed(3)}</div>
+                          <div className="text-[10px] text-muted-foreground">Network Earnings</div>
                         </div>
                       </div>
                     </CardContent>
@@ -823,9 +867,114 @@ const Dashboard = () => {
                   </Card>
                 </div>
 
+                {/* Daily network earnings trend (stacked by level) */}
+                <Card className="border-border">
+                  <CardHeader>
+                    <CardTitle className="text-base font-display text-foreground">Daily Network Earnings (Last 30 days)</CardTitle>
+                    <p className="text-xs text-muted-foreground">Stacked by upline level — see which depth of your team is paying you the most.</p>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={networkTrend as any[]} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => v.slice(5)} />
+                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
+                        <Tooltip
+                          contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, color: 'hsl(var(--popover-foreground))' }}
+                          formatter={(v: any) => `$${Number(v).toFixed(3)}`}
+                        />
+                        <Bar dataKey="L1" stackId="a" fill="hsl(43, 96%, 56%)" />
+                        <Bar dataKey="L2" stackId="a" fill="hsl(142, 76%, 45%)" />
+                        <Bar dataKey="L3" stackId="a" fill="hsl(220, 70%, 60%)" />
+                        <Bar dataKey="L4" stackId="a" fill="hsl(280, 70%, 60%)" />
+                        <Bar dataKey="L5" stackId="a" fill="hsl(0, 84%, 60%)" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Two charts: cumulative + team composition */}
+                <div className="grid lg:grid-cols-2 gap-6">
+                  <Card className="border-border">
+                    <CardHeader>
+                      <CardTitle className="text-base font-display text-foreground">Cumulative Network Earnings</CardTitle>
+                      <p className="text-xs text-muted-foreground">Your all-time growth from team activity.</p>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <AreaChart data={networkCumulative} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="netGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="hsl(43, 96%, 56%)" stopOpacity={0.6} />
+                              <stop offset="100%" stopColor="hsl(43, 96%, 56%)" stopOpacity={0.05} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => v.slice(5)} />
+                          <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
+                          <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, color: 'hsl(var(--popover-foreground))' }} formatter={(v: any) => `$${Number(v).toFixed(3)}`} />
+                          <Area type="monotone" dataKey="cumulative" stroke="hsl(43, 96%, 56%)" strokeWidth={2} fill="url(#netGrad)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-border">
+                    <CardHeader>
+                      <CardTitle className="text-base font-display text-foreground">Team Composition by Level</CardTitle>
+                      <p className="text-xs text-muted-foreground">Members & invested volume per level.</p>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={teamComposition} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} />
+                          <YAxis yAxisId="left" stroke="hsl(var(--muted-foreground))" fontSize={10} />
+                          <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--muted-foreground))" fontSize={10} />
+                          <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, color: 'hsl(var(--popover-foreground))' }} />
+                          <Bar yAxisId="left" dataKey="members" fill="hsl(220, 70%, 60%)" name="Members" />
+                          <Bar yAxisId="right" dataKey="volume" fill="hsl(43, 96%, 56%)" name="Volume ($)" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Rank progression visual */}
+                {rankProgression.length > 0 && (
+                  <Card className="border-border">
+                    <CardHeader>
+                      <CardTitle className="text-base font-display text-foreground">Rank Progression</CardTitle>
+                      <p className="text-xs text-muted-foreground">Your journey across all leader ranks.</p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {rankProgression.map((r, i) => (
+                          <div key={i}>
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: r.color }} />
+                                <span className="text-sm font-medium text-foreground">{r.name}</span>
+                                {r.achieved && <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/40 text-[10px]">Achieved</Badge>}
+                              </div>
+                              <span className="text-xs text-muted-foreground">{r.overall}%</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-muted overflow-hidden">
+                              <div className="h-full transition-all" style={{ width: `${r.overall}%`, background: r.color }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Levels breakdown */}
                 <Card className="border-border">
-                  <CardHeader><CardTitle className="text-base font-display text-foreground">Earnings by Level</CardTitle></CardHeader>
+                  <CardHeader>
+                    <CardTitle className="text-base font-display text-foreground">Earnings by Level</CardTitle>
+                    <p className="text-xs text-muted-foreground">L1: 10% • L2: 3% • L3: 3% • L4: 2% • L5: 2% — paid daily on each member's ROI.</p>
+                  </CardHeader>
                   <CardContent>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
@@ -842,7 +991,7 @@ const Dashboard = () => {
                               <td className="p-2 font-semibold text-foreground">L{s.level}</td>
                               <td className="p-2 text-muted-foreground">{s.rate}%</td>
                               <td className="p-2 text-right text-foreground">{s.members}</td>
-                              <td className="p-2 text-right text-foreground">${s.invested.toFixed(2)}</td>
+                              <td className="p-2 text-right text-foreground">${s.invested.toFixed(3)}</td>
                               <td className="p-2 text-right text-emerald-700 dark:text-emerald-400 font-semibold">${s.earned.toFixed(3)}</td>
                             </tr>
                           ))}
@@ -888,7 +1037,7 @@ const Dashboard = () => {
                               </div>
                               <div>
                                 <p className="text-muted-foreground">Invested</p>
-                                <p className="text-foreground font-medium">${Number(r.invested || 0).toFixed(2)}</p>
+                                <p className="text-foreground font-medium">${Number(r.invested || 0).toFixed(3)}</p>
                               </div>
                               <div>
                                 <p className="text-muted-foreground">Earned from</p>
@@ -902,33 +1051,49 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
 
-                {/* Recent commission ledger */}
+                {/* Commission ledger */}
                 {(mlmCommissions.length > 0 || commissions.length > 0) && (
                   <Card className="border-border">
-                    <CardHeader><CardTitle className="text-base font-display text-foreground">Recent Commissions</CardTitle></CardHeader>
+                    <CardHeader>
+                      <CardTitle className="text-base font-display text-foreground">Commission Ledger</CardTitle>
+                      <p className="text-xs text-muted-foreground">Every payout, by date and level. Updates in real time.</p>
+                    </CardHeader>
                     <CardContent>
-                      <div className="space-y-1 max-h-80 overflow-y-auto">
-                        {mlmCommissions.slice(0, 25).map((c: any, i: number) => (
-                          <div key={`m-${i}`} className="flex items-center justify-between p-2 rounded-lg text-sm hover:bg-muted/50">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[10px]">L{c.level}</Badge>
-                              <span className="text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString()}</span>
-                              <span className="text-muted-foreground text-[10px]">{c.percentage}%</span>
-                            </div>
-                            <span className="text-emerald-700 dark:text-emerald-400 font-semibold">+${Number(c.amount).toFixed(3)}</span>
-                          </div>
-                        ))}
-                        {commissions.length > 0 && (
-                          <div className="pt-2 mt-2 border-t border-border">
-                            <p className="text-[10px] text-muted-foreground mb-1">Legacy referral commissions:</p>
-                            {commissions.slice(0, 10).map((c, i) => (
-                              <div key={`l-${i}`} className="flex items-center justify-between p-2 rounded-lg text-sm">
-                                <span className="text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString()}</span>
-                                <span className="text-emerald-700 dark:text-emerald-400 font-semibold">+${Number(c.amount).toFixed(2)}</span>
-                              </div>
+                      <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                        <table className="w-full text-sm">
+                          <thead className="sticky top-0 bg-card">
+                            <tr className="border-b border-border bg-muted/30">
+                              <th className="text-left p-2 text-muted-foreground font-medium text-xs">Date</th>
+                              <th className="text-left p-2 text-muted-foreground font-medium text-xs">Level</th>
+                              <th className="text-left p-2 text-muted-foreground font-medium text-xs">Rate</th>
+                              <th className="text-left p-2 text-muted-foreground font-medium text-xs">From</th>
+                              <th className="text-right p-2 text-muted-foreground font-medium text-xs">Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {mlmCommissions.map((c: any, i: number) => {
+                              const member = downline.find(d => d.user_id === c.downline_id);
+                              return (
+                                <tr key={`m-${i}`} className="border-b border-border/50 hover:bg-muted/30">
+                                  <td className="p-2 text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString()}</td>
+                                  <td className="p-2"><Badge variant="outline" className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[10px]">L{c.level}</Badge></td>
+                                  <td className="p-2 text-muted-foreground text-xs">{c.percentage}%</td>
+                                  <td className="p-2 text-foreground text-xs truncate max-w-[140px]">{member?.full_name || '—'}</td>
+                                  <td className="p-2 text-right text-emerald-700 dark:text-emerald-400 font-semibold">+${Number(c.amount).toFixed(3)}</td>
+                                </tr>
+                              );
+                            })}
+                            {commissions.map((c, i) => (
+                              <tr key={`l-${i}`} className="border-b border-border/50 hover:bg-muted/30">
+                                <td className="p-2 text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString()}</td>
+                                <td className="p-2"><Badge variant="outline" className="text-[10px]">Legacy</Badge></td>
+                                <td className="p-2 text-muted-foreground text-xs">—</td>
+                                <td className="p-2 text-foreground text-xs">—</td>
+                                <td className="p-2 text-right text-emerald-700 dark:text-emerald-400 font-semibold">+${Number(c.amount).toFixed(3)}</td>
+                              </tr>
                             ))}
-                          </div>
-                        )}
+                          </tbody>
+                        </table>
                       </div>
                     </CardContent>
                   </Card>
@@ -954,14 +1119,14 @@ const Dashboard = () => {
                           ...investments.map(i => ({ type: 'Deposit', amount: Number(i.amount), date: i.created_at, status: i.status })),
                           ...withdrawals.map(w => ({ type: 'Withdrawal', amount: -Number(w.amount), date: w.created_at, status: w.status })),
                           ...commissions.map(c => ({ type: 'Referral', amount: Number(c.amount), date: c.created_at, status: 'confirmed' })),
-                          ...mlmCommissions.map((c: any) => ({ type: `MLM L${c.level}`, amount: Number(c.amount), date: c.created_at, status: 'confirmed' })),
+                          ...mlmCommissions.map((c: any) => ({ type: `Network L${c.level}`, amount: Number(c.amount), date: c.created_at, status: 'confirmed' })),
                         ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((tx, i) => (
                           <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                             <td className="p-2 sm:p-3"><div className="flex items-center gap-2">
                               {tx.type === 'Deposit' && <TrendingUp className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />}
                               {tx.type === 'Withdrawal' && <ArrowDownToLine className="w-3.5 h-3.5 text-red-500" />}
                               {tx.type === 'Referral' && <Users className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />}
-                              {tx.type.startsWith('MLM') && <Users className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />}
+                              {tx.type.startsWith('Network') && <Users className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />}
                               <span className="font-medium text-foreground text-xs sm:text-sm">{tx.type}</span>
                             </div></td>
                             <td className="p-2 sm:p-3 text-muted-foreground text-xs">{new Date(tx.date).toLocaleDateString()}</td>

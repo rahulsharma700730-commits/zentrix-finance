@@ -94,6 +94,50 @@ export type Database = {
         }
         Relationships: []
       }
+      mlm_commissions: {
+        Row: {
+          amount: number
+          created_at: string
+          daily_earning_id: string
+          downline_id: string
+          earned_date: string
+          id: string
+          level: number
+          percentage: number
+          referrer_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          daily_earning_id: string
+          downline_id: string
+          earned_date?: string
+          id?: string
+          level: number
+          percentage: number
+          referrer_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          daily_earning_id?: string
+          downline_id?: string
+          earned_date?: string
+          id?: string
+          level?: number
+          percentage?: number
+          referrer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mlm_commissions_daily_earning_id_fkey"
+            columns: ["daily_earning_id"]
+            isOneToOne: false
+            referencedRelation: "daily_earnings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -125,12 +169,16 @@ export type Database = {
         Row: {
           block_reason: string | null
           created_at: string
+          current_rank_id: string | null
+          direct_referrals_count: number
           email: string
           full_name: string
           id: string
           is_blocked: boolean
           referral_code: string | null
           referred_by: string | null
+          team_size: number
+          team_volume: number
           updated_at: string
           user_id: string
           wallet_address: string | null
@@ -138,12 +186,16 @@ export type Database = {
         Insert: {
           block_reason?: string | null
           created_at?: string
+          current_rank_id?: string | null
+          direct_referrals_count?: number
           email?: string
           full_name?: string
           id?: string
           is_blocked?: boolean
           referral_code?: string | null
           referred_by?: string | null
+          team_size?: number
+          team_volume?: number
           updated_at?: string
           user_id: string
           wallet_address?: string | null
@@ -151,15 +203,66 @@ export type Database = {
         Update: {
           block_reason?: string | null
           created_at?: string
+          current_rank_id?: string | null
+          direct_referrals_count?: number
           email?: string
           full_name?: string
           id?: string
           is_blocked?: boolean
           referral_code?: string | null
           referred_by?: string | null
+          team_size?: number
+          team_volume?: number
           updated_at?: string
           user_id?: string
           wallet_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_current_rank_id_fkey"
+            columns: ["current_rank_id"]
+            isOneToOne: false
+            referencedRelation: "rank_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rank_tiers: {
+        Row: {
+          badge_color: string
+          bonus_percentage: number
+          created_at: string
+          id: string
+          min_direct_referrals: number
+          min_team_size: number
+          min_team_volume_usd: number
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          badge_color?: string
+          bonus_percentage?: number
+          created_at?: string
+          id?: string
+          min_direct_referrals?: number
+          min_team_size?: number
+          min_team_volume_usd?: number
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          badge_color?: string
+          bonus_percentage?: number
+          created_at?: string
+          id?: string
+          min_direct_referrals?: number
+          min_team_size?: number
+          min_team_volume_usd?: number
+          name?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -356,6 +459,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_upline_chain: {
+        Args: { _max_levels?: number; _user_id: string }
+        Returns: {
+          ancestor_id: string
+          level: number
+        }[]
+      }
       get_user_id_by_referral_code: { Args: { _code: string }; Returns: string }
       has_role: {
         Args: {
@@ -364,6 +474,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      recompute_team_stats: { Args: { _user_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "investor"
@@ -373,6 +484,7 @@ export type Database = {
         | "withdrawal"
         | "referral_commission"
         | "daily_earning"
+        | "mlm_commission"
       withdrawal_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -508,6 +620,7 @@ export const Constants = {
         "withdrawal",
         "referral_commission",
         "daily_earning",
+        "mlm_commission",
       ],
       withdrawal_status: ["pending", "approved", "rejected"],
     },
