@@ -1126,7 +1126,7 @@ const Dashboard = () => {
                               {tx.type === 'Deposit' && <TrendingUp className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />}
                               {tx.type === 'Withdrawal' && <ArrowDownToLine className="w-3.5 h-3.5 text-red-500" />}
                               {tx.type === 'Referral' && <Users className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />}
-                              {tx.type.startsWith('MLM') && <Users className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />}
+                              {tx.type.startsWith('Network') && <Users className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />}
                               <span className="font-medium text-foreground text-xs sm:text-sm">{tx.type}</span>
                             </div></td>
                             <td className="p-2 sm:p-3 text-muted-foreground text-xs">{new Date(tx.date).toLocaleDateString()}</td>
