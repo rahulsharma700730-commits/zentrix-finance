@@ -58,7 +58,26 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const dailyReturn = (Number(inv.amount) * 2) / 600;
+      let dailyReturn = (Number(inv.amount) * 2) / 600;
+
+      // ROI CAP: never let total earned on this investment exceed amount * 2 (200%).
+      const { data: priorEarn } = await supabase
+        .from("daily_earnings")
+        .select("amount")
+        .eq("investment_id", inv.id);
+      const earnedSoFar = (priorEarn || []).reduce((s: number, e: any) => s + Number(e.amount), 0);
+      const cap = Number(inv.amount) * 2;
+      const remaining = cap - earnedSoFar;
+      if (remaining <= 0) {
+        // Already capped — mark complete, skip payout.
+        await supabase.from("investments")
+          .update({ status: "completed", days_paid: 600 })
+          .eq("id", inv.id);
+        skipped++;
+        continue;
+      }
+      // Rollover: if today's payout would exceed cap, pay only the remainder.
+      if (dailyReturn > remaining) dailyReturn = remaining;
 
       // Insert daily earning
       const { data: earning, error: earnError } = await supabase
@@ -77,18 +96,17 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Update days_paid
+      // Update days_paid and complete if cap reached
+      const newDaysPaid = (inv.days_paid || 0) + 1;
+      const newEarned = earnedSoFar + dailyReturn;
+      const reachedCap = newEarned >= cap - 0.0001;
       await supabase
         .from("investments")
-        .update({ days_paid: (inv.days_paid || 0) + 1 })
+        .update({
+          days_paid: newDaysPaid,
+          status: reachedCap || newDaysPaid >= 600 ? "completed" : inv.status,
+        })
         .eq("id", inv.id);
-
-      if ((inv.days_paid || 0) + 1 >= 600) {
-        await supabase
-          .from("investments")
-          .update({ status: "completed" })
-          .eq("id", inv.id);
-      }
 
       // ===== MLM commission fan-out (5 levels) =====
       const { data: upline, error: uplineErr } = await supabase
