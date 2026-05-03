@@ -1006,6 +1006,8 @@ const AdminDashboard = () => {
           {holdDialog}
           {blockDialog}
           {usdtConfirmDialog}
+          {sendDialog}
+          {auditDialog}
           <main className="p-3 sm:p-5 pb-20">
 
         {/* Overview header strip */}
