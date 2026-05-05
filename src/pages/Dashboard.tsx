@@ -397,21 +397,47 @@ const Dashboard = () => {
           </header>
 
           <main className="p-3 sm:p-5 pb-20">
-            {/* Account header strip — visible on every section */}
-            <div className="mb-5 p-4 sm:p-5 rounded-2xl bg-gradient-gold-subtle border border-primary/20">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <h1 className="text-lg sm:text-xl md:text-2xl font-display font-bold text-foreground">
-                    Welcome, <span className="text-amber-700 dark:text-amber-400">{profile?.full_name || 'Investor'}</span> 👋
-                  </h1>
-                  <p className="text-muted-foreground text-xs mt-0.5">
-                    USDT BEP20 • Wallet: <span className="font-mono text-foreground/80 break-all">{profile?.wallet_address || 'Not set'}</span>
+            {/* Premium account hero — visible on every section */}
+            <div className="mb-5 relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black shadow-2xl">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_60%)]" />
+              <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-amber-500/10 blur-3xl" />
+              <div className="relative p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 shrink-0">
+                  <span className="font-display font-black text-2xl sm:text-3xl text-zinc-950">
+                    {(profile?.full_name || 'I').trim().charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-xl sm:text-2xl font-display font-bold text-white truncate">
+                      {profile?.full_name || 'Investor'}
+                    </h1>
+                    <Badge className="bg-amber-500/15 text-amber-400 border border-amber-500/40 text-[10px] tracking-wider uppercase">Premium Investor</Badge>
+                    {firstConfirmed && (
+                      <Badge variant="outline" className="bg-zinc-900 text-amber-400 border-amber-500/40 text-[10px]">
+                        {daysActive}d active
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-zinc-400 text-xs mt-1 truncate">{profile?.email}</p>
+                  <p className="text-zinc-500 text-[11px] mt-2">
+                    USDT BEP20 • <span className="font-mono text-zinc-300 break-all">{profile?.wallet_address ? `${profile.wallet_address.slice(0, 10)}…${profile.wallet_address.slice(-6)}` : 'Wallet not set'}</span>
                   </p>
                   {referrerName && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Referred by: <strong className="text-foreground">{referrerName}</strong>
+                    <p className="text-[11px] text-zinc-500 mt-1">
+                      Referred by <strong className="text-amber-400">{referrerName}</strong>
                     </p>
                   )}
+                </div>
+                <div className="flex sm:flex-col gap-2 shrink-0">
+                  <div className="px-3 py-2 rounded-xl bg-zinc-900/80 border border-amber-500/20 text-center">
+                    <p className="text-[9px] text-zinc-500 uppercase tracking-wider">Balance</p>
+                    <p className="font-display font-bold text-amber-400 text-sm">${availableBalance.toFixed(2)}</p>
+                  </div>
+                  <div className="px-3 py-2 rounded-xl bg-zinc-900/80 border border-emerald-500/20 text-center">
+                    <p className="text-[9px] text-zinc-500 uppercase tracking-wider">Daily</p>
+                    <p className="font-display font-bold text-emerald-400 text-sm">${dailyRate.toFixed(2)}</p>
+                  </div>
                 </div>
               </div>
             </div>

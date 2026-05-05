@@ -1368,10 +1368,84 @@ const AdminDashboard = () => {
         )}
 
         {/* Referrals */}
-        {section === 'referrals' && (
+        {section === 'referrals' && (() => {
+          // Aggregate per referrer
+          const allComm = [...allCommissions, ...allMlm.map((m: any) => ({ ...m, referred_id: m.downline_id }))];
+          const byReferrer: Record<string, { count: number; total: number; downlines: Set<string> }> = {};
+          const byPair: Record<string, { referrer_id: string; referred_id: string; count: number; total: number; last: string }> = {};
+          for (const c of allComm) {
+            const r = c.referrer_id; const d = c.referred_id;
+            if (!byReferrer[r]) byReferrer[r] = { count: 0, total: 0, downlines: new Set() };
+            byReferrer[r].count++; byReferrer[r].total += Number(c.amount); byReferrer[r].downlines.add(d);
+            const k = `${r}|${d}`;
+            if (!byPair[k]) byPair[k] = { referrer_id: r, referred_id: d, count: 0, total: 0, last: c.created_at };
+            byPair[k].count++; byPair[k].total += Number(c.amount);
+            if (new Date(c.created_at) > new Date(byPair[k].last)) byPair[k].last = c.created_at;
+          }
+          const referrerRows = Object.entries(byReferrer).map(([rid, v]) => ({ rid, ...v })).sort((a, b) => b.total - a.total);
+          const pairRows = Object.values(byPair).sort((a, b) => b.total - a.total);
+          return (
           <div className="space-y-6">
+            {/* Per-referrer summary */}
             <Card className="border-border">
-              <CardHeader><CardTitle className="text-base font-display text-foreground">Referral Overview</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base font-display text-foreground">Referrers Summary</CardTitle></CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm"><thead><tr className="border-b border-border bg-muted/30">
+                    <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">Referrer</th>
+                    <th className="text-right p-2 text-muted-foreground text-xs">Direct Referrals</th>
+                    <th className="text-right p-2 text-muted-foreground text-xs">Unique Downlines (Paid)</th>
+                    <th className="text-right p-2 text-muted-foreground text-xs">Commission Events</th>
+                    <th className="text-right p-2 text-muted-foreground text-xs">Total Commission</th>
+                  </tr></thead><tbody>
+                    {referrerRows.map((r, i) => {
+                      const u = users.find(x => x.user_id === r.rid);
+                      return (
+                        <tr key={i} className="border-b border-border/50 hover:bg-muted/20">
+                          <td className="p-2 sm:p-3"><p className="text-foreground text-xs font-medium">{u?.full_name || 'Unknown'}</p><p className="text-[10px] text-muted-foreground">{u?.email}</p></td>
+                          <td className="p-2 text-right text-foreground text-xs">{u?.direct_referrals_count ?? users.filter(x => x.referred_by === r.rid).length}</td>
+                          <td className="p-2 text-right text-foreground text-xs">{r.downlines.size}</td>
+                          <td className="p-2 text-right text-foreground text-xs">{r.count}</td>
+                          <td className="p-2 text-right font-semibold text-amber-600 dark:text-amber-400 text-xs">${r.total.toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody></table>
+                  {referrerRows.length === 0 && <p className="text-center text-muted-foreground py-6 text-sm">No referral activity yet</p>}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Per-pair: how much each downline contributed to each referrer */}
+            <Card className="border-border">
+              <CardHeader><CardTitle className="text-base font-display text-foreground">Commission by Referrer × Downline</CardTitle></CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm"><thead><tr className="border-b border-border bg-muted/30">
+                    <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">Referrer</th>
+                    <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">From Downline</th>
+                    <th className="text-right p-2 text-muted-foreground text-xs">Payouts</th>
+                    <th className="text-right p-2 text-muted-foreground text-xs">Total Earned</th>
+                    <th className="text-left p-2 text-muted-foreground text-xs hidden sm:table-cell">Last Payout</th>
+                  </tr></thead><tbody>
+                    {pairRows.slice(0, 200).map((p, i) => (
+                      <tr key={i} className="border-b border-border/50 hover:bg-muted/20">
+                        <td className="p-2 sm:p-3"><p className="text-foreground text-xs font-medium">{getUserName(p.referrer_id)}</p><p className="text-[10px] text-muted-foreground">{getUserEmail(p.referrer_id)}</p></td>
+                        <td className="p-2 sm:p-3"><p className="text-foreground text-xs font-medium">{getUserName(p.referred_id)}</p><p className="text-[10px] text-muted-foreground">{getUserEmail(p.referred_id)}</p></td>
+                        <td className="p-2 text-right text-foreground text-xs">{p.count}</td>
+                        <td className="p-2 text-right font-semibold text-amber-600 dark:text-amber-400 text-xs">${p.total.toFixed(2)}</td>
+                        <td className="p-2 text-muted-foreground text-xs hidden sm:table-cell">{new Date(p.last).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody></table>
+                  {pairRows.length === 0 && <p className="text-center text-muted-foreground py-6 text-sm">No commissions yet</p>}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Raw recent commissions */}
+            <Card className="border-border">
+              <CardHeader><CardTitle className="text-base font-display text-foreground">Recent Commission Ledger</CardTitle></CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm"><thead><tr className="border-b border-border bg-muted/30">
@@ -1380,16 +1454,16 @@ const AdminDashboard = () => {
                     <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs">Commission</th>
                     <th className="text-left p-2 sm:p-3 text-muted-foreground font-medium text-xs hidden sm:table-cell">Date</th>
                   </tr></thead><tbody>
-                    {allCommissions.slice(0, 100).map((c, i) => (
+                    {allComm.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 100).map((c: any, i: number) => (
                       <tr key={i} className="border-b border-border/50 hover:bg-muted/20">
                         <td className="p-2 sm:p-3"><p className="text-foreground text-xs font-medium">{getUserName(c.referrer_id)}</p><p className="text-[10px] text-muted-foreground">{getUserEmail(c.referrer_id)}</p></td>
                         <td className="p-2 sm:p-3"><p className="text-foreground text-xs font-medium">{getUserName(c.referred_id)}</p><p className="text-[10px] text-muted-foreground">{getUserEmail(c.referred_id)}</p></td>
-                        <td className="p-2 sm:p-3 font-semibold text-amber-600 dark:text-amber-400 text-xs">${Number(c.amount).toFixed(2)}</td>
+                        <td className="p-2 sm:p-3 font-semibold text-amber-600 dark:text-amber-400 text-xs">${Number(c.amount).toFixed(2)}{c.level ? <span className="text-[10px] text-muted-foreground ml-1">L{c.level}</span> : null}</td>
                         <td className="p-2 sm:p-3 text-muted-foreground text-xs hidden sm:table-cell">{new Date(c.created_at).toLocaleDateString()}</td>
                       </tr>
                     ))}
                   </tbody></table>
-                  {allCommissions.length === 0 && <p className="text-center text-muted-foreground py-8 text-sm">No referral commissions yet</p>}
+                  {allComm.length === 0 && <p className="text-center text-muted-foreground py-8 text-sm">No referral commissions yet</p>}
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-border">
@@ -1417,7 +1491,8 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </div>
-        )}
+          );
+        })()}
 
         {/* MLM & Ranks */}
         {section === 'mlm' && (
