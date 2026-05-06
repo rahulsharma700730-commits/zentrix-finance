@@ -204,7 +204,7 @@ const AdminDashboard = () => {
     return {
       totalInvested: confirmedInv.reduce((s, i) => s + Number(i.amount), 0),
       activeUsers: users.filter(u => !u.is_blocked).length,
-      totalPayouts: allWithdrawals.filter(w => w.status === 'approved').reduce((s, w) => s + Number(w.amount), 0),
+      totalPayouts: allWithdrawals.filter(w => ['approved','sent','confirmed'].includes(w.status)).reduce((s, w) => s + Number(w.amount), 0),
       pendingDeposits: allInvestments.filter(i => i.status === 'pending').length,
       pendingWithdrawals: allWithdrawals.filter(w => w.status === 'pending').length,
       totalCommissions: allCommissions.reduce((s, c) => s + Number(c.amount), 0),
@@ -759,7 +759,7 @@ const AdminDashboard = () => {
     const uTotalInvested = selectedUserInvestments.filter(i => i.status === 'confirmed').reduce((s, i) => s + Number(i.amount), 0);
     const uTotalEarned = selectedUserEarnings.reduce((s, e) => s + Number(e.amount), 0);
     const uTotalCommissions = selectedUserCommissions.reduce((s, c) => s + Number(c.amount), 0);
-    const uTotalWithdrawn = selectedUserWithdrawals.filter(w => w.status === 'approved').reduce((s, w) => s + Number(w.amount), 0);
+    const uTotalWithdrawn = selectedUserWithdrawals.filter(w => ['approved','sent','confirmed'].includes(w.status)).reduce((s, w) => s + Number(w.amount), 0);
     const uAvailable = uTotalEarned + uTotalCommissions - uTotalWithdrawn;
     const referrerProfile = selectedUser.referred_by ? users.find(u => u.user_id === selectedUser.referred_by) : null;
     const uExpected = uTotalInvested * 2;

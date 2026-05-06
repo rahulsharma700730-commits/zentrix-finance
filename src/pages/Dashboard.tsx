@@ -173,9 +173,12 @@ const Dashboard = () => {
   const totalEarned = useMemo(() => earnings.reduce((s, e) => s + Number(e.amount), 0), [earnings]);
   const totalCommissions = useMemo(() => commissions.reduce((s, c) => s + Number(c.amount), 0), [commissions]);
   const totalMlm = useMemo(() => mlmCommissions.reduce((s, c) => s + Number(c.amount), 0), [mlmCommissions]);
-  const totalWithdrawn = useMemo(() => withdrawals.filter(w => w.status === 'approved').reduce((s, w) => s + Number(w.amount), 0), [withdrawals]);
-  const pendingWithdrawals = useMemo(() => withdrawals.filter(w => w.status === 'pending').reduce((s, w) => s + Number(w.amount), 0), [withdrawals]);
-  const availableBalance = totalEarned + totalCommissions + totalMlm - totalWithdrawn - pendingWithdrawals;
+  const totalWithdrawn = useMemo(() => withdrawals.filter(w => ['approved','sent','confirmed'].includes(w.status)).reduce((s, w) => s + Number(w.amount), 0), [withdrawals]);
+  const pendingWithdrawals = useMemo(() => withdrawals.filter(w => ['pending','on_hold'].includes(w.status)).reduce((s, w) => s + Number(w.amount), 0), [withdrawals]);
+  // ROI cap (200%) applies only to own daily earnings; MLM/referral commissions are separate income.
+  const roiCap = useMemo(() => investments.filter(i => ['confirmed','completed'].includes(i.status)).reduce((s, i) => s + Number(i.amount) * 2, 0), [investments]);
+  const cappedEarned = Math.min(totalEarned, roiCap);
+  const availableBalance = cappedEarned + totalCommissions + totalMlm - totalWithdrawn - pendingWithdrawals;
   const dailyRate = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + (Number(i.amount) * 2) / 600, 0), [investments]);
   const expectedTotal = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + Number(i.amount) * 2, 0), [investments]);
   const cappingPercent = expectedTotal > 0 ? Math.min(((totalEarned + totalCommissions + totalMlm) / expectedTotal) * 100, 100) : 0;
