@@ -12,6 +12,7 @@ import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
 import { FAQSection } from '@/components/landing/FAQSection';
 import { CTABanner } from '@/components/landing/CTABanner';
 import { Footer } from '@/components/landing/Footer';
+import { RewardsSection } from '@/components/landing/RewardsSection';
 
 const Index = () => (
   <div className="min-h-screen">
@@ -21,6 +22,7 @@ const Index = () => (
       <LiveTicker />
       <TrustBadges />
       <HowItWorks />
+      <RewardsSection />
       <InvestmentPlans />
       <ROICalculator />
       <StatsSection />
