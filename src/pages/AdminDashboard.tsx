@@ -204,7 +204,7 @@ const AdminDashboard = () => {
     return {
       totalInvested: confirmedInv.reduce((s, i) => s + Number(i.amount), 0),
       activeUsers: users.filter(u => !u.is_blocked).length,
-      totalPayouts: allWithdrawals.filter(w => w.status === 'approved').reduce((s, w) => s + Number(w.amount), 0),
+      totalPayouts: allWithdrawals.filter(w => ['approved','sent','confirmed'].includes(w.status)).reduce((s, w) => s + Number(w.amount), 0),
       pendingDeposits: allInvestments.filter(i => i.status === 'pending').length,
       pendingWithdrawals: allWithdrawals.filter(w => w.status === 'pending').length,
       totalCommissions: allCommissions.reduce((s, c) => s + Number(c.amount), 0),
