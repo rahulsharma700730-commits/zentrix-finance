@@ -857,7 +857,7 @@ const Dashboard = () => {
                         <div className="space-y-2 text-xs">
                           <p className="text-muted-foreground">Progress to <span className="font-semibold text-foreground">{nextRank.name}</span>:</p>
                           {[
-                            { label: 'Active directs', cur: directWithInvestment, target: nextRank.min_direct_referrals },
+                            { label: 'Direct referrals', cur: directReferrals.length, target: nextRank.min_direct_referrals },
                             { label: 'Team size', cur: teamSize, target: nextRank.min_team_size },
                             { label: 'Team volume', cur: teamVolume, target: Number(nextRank.min_team_volume_usd), money: true },
                           ].map((m, i) => {
