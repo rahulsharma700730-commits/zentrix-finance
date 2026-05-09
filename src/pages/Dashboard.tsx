@@ -134,33 +134,21 @@ const Dashboard = () => {
     setTickets(tix.data || []);
     setRankTiers(ranks.data || []);
 
-    // Build downline up to 5 levels deep by walking referred_by
-    const flat: any[] = [];
-    let currentLevel: string[] = [user.id];
-    for (let lvl = 1; lvl <= 5 && currentLevel.length > 0; lvl++) {
-      const { data: levelUsers } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, email, created_at, referred_by')
-        .in('referred_by', currentLevel);
-      if (!levelUsers || levelUsers.length === 0) break;
-      // Enrich with confirmed investment totals
-      const ids = levelUsers.map((u: any) => u.user_id);
-      const { data: theirInvs } = await supabase
-        .from('investments')
-        .select('user_id, amount, status')
-        .in('user_id', ids);
-      const enriched = levelUsers.map((u: any) => {
-        const userInvs = (theirInvs || []).filter((i: any) => i.user_id === u.user_id);
-        const invested = userInvs.filter((i: any) => i.status === 'confirmed').reduce((s: number, i: any) => s + Number(i.amount), 0);
-        const hasActive = userInvs.some((i: any) => i.status === 'confirmed');
-        const commissionFromUser = (mlm.data || [])
-          .filter((c: any) => c.downline_id === u.user_id)
-          .reduce((s: number, c: any) => s + Number(c.amount), 0);
-        return { ...u, level: lvl, invested, hasActive, commissionFromUser };
-      });
-      flat.push(...enriched);
-      currentLevel = ids;
-    }
+    // Fetch full 5-level downline via SECURITY DEFINER RPC (bypasses per-row RLS for aggregates)
+    const { data: dlData } = await supabase.rpc('get_user_downline', { _user_id: user.id });
+    const flat = (dlData || []).map((u: any) => ({
+      user_id: u.user_id,
+      full_name: u.full_name,
+      email: u.email,
+      created_at: u.created_at,
+      referred_by: u.referred_by,
+      level: u.level,
+      invested: Number(u.invested || 0),
+      hasActive: !!u.has_active,
+      commissionFromUser: (mlm.data || [])
+        .filter((c: any) => c.downline_id === u.user_id)
+        .reduce((s: number, c: any) => s + Number(c.amount), 0),
+    }));
     setDownline(flat);
 
     if (profile?.referred_by) {
@@ -404,14 +392,14 @@ const Dashboard = () => {
             <div className="mb-5 relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black shadow-2xl">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_60%)]" />
               <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-amber-500/10 blur-3xl" />
-              <div className="relative p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="relative p-5 sm:p-6 flex flex-col items-center text-center sm:flex-row sm:items-center sm:text-left gap-4">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 shrink-0">
                   <span className="font-display font-black text-2xl sm:text-3xl text-zinc-950">
                     {(profile?.full_name || 'I').trim().charAt(0).toUpperCase()}
                   </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex-1 min-w-0 w-full">
+                  <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
                     <h1 className="text-xl sm:text-2xl font-display font-bold text-white truncate">
                       {profile?.full_name || 'Investor'}
                     </h1>
@@ -432,7 +420,7 @@ const Dashboard = () => {
                     </p>
                   )}
                 </div>
-                <div className="flex sm:flex-col gap-2 shrink-0">
+                <div className="flex flex-row sm:flex-col gap-2 shrink-0 justify-center">
                   <div className="px-3 py-2 rounded-xl bg-zinc-900/80 border border-amber-500/20 text-center">
                     <p className="text-[9px] text-zinc-500 uppercase tracking-wider">Balance</p>
                     <p className="font-display font-bold text-amber-400 text-sm">${availableBalance.toFixed(2)}</p>
@@ -869,7 +857,7 @@ const Dashboard = () => {
                         <div className="space-y-2 text-xs">
                           <p className="text-muted-foreground">Progress to <span className="font-semibold text-foreground">{nextRank.name}</span>:</p>
                           {[
-                            { label: 'Active directs', cur: directWithInvestment, target: nextRank.min_direct_referrals },
+                            { label: 'Direct referrals', cur: directReferrals.length, target: nextRank.min_direct_referrals },
                             { label: 'Team size', cur: teamSize, target: nextRank.min_team_size },
                             { label: 'Team volume', cur: teamVolume, target: Number(nextRank.min_team_volume_usd), money: true },
                           ].map((m, i) => {

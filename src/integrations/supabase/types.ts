@@ -511,6 +511,19 @@ export type Database = {
           level: number
         }[]
       }
+      get_user_downline: {
+        Args: { _user_id: string }
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          has_active: boolean
+          invested: number
+          level: number
+          referred_by: string
+          user_id: string
+        }[]
+      }
       get_user_id_by_referral_code: { Args: { _code: string }; Returns: string }
       has_role: {
         Args: {
