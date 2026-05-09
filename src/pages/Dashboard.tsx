@@ -392,14 +392,14 @@ const Dashboard = () => {
             <div className="mb-5 relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black shadow-2xl">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_60%)]" />
               <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-amber-500/10 blur-3xl" />
-              <div className="relative p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="relative p-5 sm:p-6 flex flex-col items-center text-center sm:flex-row sm:items-center sm:text-left gap-4">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 shrink-0">
                   <span className="font-display font-black text-2xl sm:text-3xl text-zinc-950">
                     {(profile?.full_name || 'I').trim().charAt(0).toUpperCase()}
                   </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex-1 min-w-0 w-full">
+                  <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
                     <h1 className="text-xl sm:text-2xl font-display font-bold text-white truncate">
                       {profile?.full_name || 'Investor'}
                     </h1>
@@ -420,7 +420,7 @@ const Dashboard = () => {
                     </p>
                   )}
                 </div>
-                <div className="flex sm:flex-col gap-2 shrink-0">
+                <div className="flex flex-row sm:flex-col gap-2 shrink-0 justify-center">
                   <div className="px-3 py-2 rounded-xl bg-zinc-900/80 border border-amber-500/20 text-center">
                     <p className="text-[9px] text-zinc-500 uppercase tracking-wider">Balance</p>
                     <p className="font-display font-bold text-amber-400 text-sm">${availableBalance.toFixed(2)}</p>
@@ -428,24 +428,6 @@ const Dashboard = () => {
                   <div className="px-3 py-2 rounded-xl bg-zinc-900/80 border border-emerald-500/20 text-center">
                     <p className="text-[9px] text-zinc-500 uppercase tracking-wider">Daily</p>
                     <p className="font-display font-bold text-emerald-400 text-sm">${dailyRate.toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Rejected deposits alert */}
-            {investments.filter(i => i.status === 'rejected').length > 0 && (
-              <div className="mb-4 p-4 rounded-xl bg-destructive/10 border border-destructive/30">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-destructive">Some deposits were rejected</p>
-                    {investments.filter(i => i.status === 'rejected').map(inv => (
-                      <p key={inv.id} className="text-xs text-foreground/80 mt-1 break-all">
-                        ${Number(inv.amount).toFixed(2)} on {new Date(inv.created_at).toLocaleDateString()}
-                        {inv.tx_hash && <span className="font-mono"> — TX: {inv.tx_hash.slice(0, 20)}...</span>}
-                      </p>
-                    ))}
                   </div>
                 </div>
               </div>
