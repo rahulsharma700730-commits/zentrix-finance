@@ -134,33 +134,21 @@ const Dashboard = () => {
     setTickets(tix.data || []);
     setRankTiers(ranks.data || []);
 
-    // Build downline up to 5 levels deep by walking referred_by
-    const flat: any[] = [];
-    let currentLevel: string[] = [user.id];
-    for (let lvl = 1; lvl <= 5 && currentLevel.length > 0; lvl++) {
-      const { data: levelUsers } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, email, created_at, referred_by')
-        .in('referred_by', currentLevel);
-      if (!levelUsers || levelUsers.length === 0) break;
-      // Enrich with confirmed investment totals
-      const ids = levelUsers.map((u: any) => u.user_id);
-      const { data: theirInvs } = await supabase
-        .from('investments')
-        .select('user_id, amount, status')
-        .in('user_id', ids);
-      const enriched = levelUsers.map((u: any) => {
-        const userInvs = (theirInvs || []).filter((i: any) => i.user_id === u.user_id);
-        const invested = userInvs.filter((i: any) => i.status === 'confirmed').reduce((s: number, i: any) => s + Number(i.amount), 0);
-        const hasActive = userInvs.some((i: any) => i.status === 'confirmed');
-        const commissionFromUser = (mlm.data || [])
-          .filter((c: any) => c.downline_id === u.user_id)
-          .reduce((s: number, c: any) => s + Number(c.amount), 0);
-        return { ...u, level: lvl, invested, hasActive, commissionFromUser };
-      });
-      flat.push(...enriched);
-      currentLevel = ids;
-    }
+    // Fetch full 5-level downline via SECURITY DEFINER RPC (bypasses per-row RLS for aggregates)
+    const { data: dlData } = await supabase.rpc('get_user_downline', { _user_id: user.id });
+    const flat = (dlData || []).map((u: any) => ({
+      user_id: u.user_id,
+      full_name: u.full_name,
+      email: u.email,
+      created_at: u.created_at,
+      referred_by: u.referred_by,
+      level: u.level,
+      invested: Number(u.invested || 0),
+      hasActive: !!u.has_active,
+      commissionFromUser: (mlm.data || [])
+        .filter((c: any) => c.downline_id === u.user_id)
+        .reduce((s: number, c: any) => s + Number(c.amount), 0),
+    }));
     setDownline(flat);
 
     if (profile?.referred_by) {
