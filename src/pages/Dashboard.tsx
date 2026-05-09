@@ -399,10 +399,10 @@ const Dashboard = () => {
                   </span>
                 </div>
                 <div className="flex-1 min-w-0 w-full">
-                  <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-                    <h1 className="text-xl sm:text-2xl font-display font-bold text-white truncate">
-                      {profile?.full_name || 'Investor'}
-                    </h1>
+                  <h1 className="text-xl sm:text-2xl font-display font-bold text-white truncate text-center sm:text-left">
+                    {profile?.full_name || 'Investor'}
+                  </h1>
+                  <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap mt-2">
                     <Badge className="bg-amber-500/15 text-amber-400 border border-amber-500/40 text-[10px] tracking-wider uppercase">Premium Investor</Badge>
                     {firstConfirmed && (
                       <Badge variant="outline" className="bg-zinc-900 text-amber-400 border-amber-500/40 text-[10px]">
@@ -410,15 +410,16 @@ const Dashboard = () => {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-zinc-400 text-xs mt-1 truncate">{profile?.email}</p>
+                  <p className="text-zinc-400 text-xs mt-2 truncate">{profile?.email}</p>
                   <p className="text-zinc-500 text-[11px] mt-2">
                     USDT BEP20 • <span className="font-mono text-zinc-300 break-all">{profile?.wallet_address ? `${profile.wallet_address.slice(0, 10)}…${profile.wallet_address.slice(-6)}` : 'Wallet not set'}</span>
                   </p>
-                  {referrerName && (
-                    <p className="text-[11px] text-zinc-500 mt-1">
-                      Referred by <strong className="text-amber-400">{referrerName}</strong>
-                    </p>
-                  )}
+                  <p className="text-[11px] text-zinc-500 mt-1">
+                    Referred by{' '}
+                    <strong className="text-amber-400">
+                      {referrerName || (profile?.referred_by ? 'Loading…' : 'Direct Signup')}
+                    </strong>
+                  </p>
                 </div>
                 <div className="flex flex-row sm:flex-col gap-2 shrink-0 justify-center">
                   <div className="px-3 py-2 rounded-xl bg-zinc-900/80 border border-amber-500/20 text-center">
