@@ -431,6 +431,24 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Rejected deposits alert */}
+            {investments.filter(i => i.status === 'rejected').length > 0 && (
+              <div className="mb-4 p-4 rounded-xl bg-destructive/10 border border-destructive/30">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-destructive">Some deposits were rejected</p>
+                    {investments.filter(i => i.status === 'rejected').map(inv => (
+                      <p key={inv.id} className="text-xs text-foreground/80 mt-1 break-all">
+                        ${Number(inv.amount).toFixed(2)} on {new Date(inv.created_at).toLocaleDateString()}
+                        {inv.tx_hash && <span className="font-mono"> — TX: {inv.tx_hash.slice(0, 20)}...</span>}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* OVERVIEW */}
