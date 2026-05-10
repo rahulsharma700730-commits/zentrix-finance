@@ -179,8 +179,7 @@ const Dashboard = () => {
   const availableBalance = cappedEarned + totalCommissions + totalMlm - totalWithdrawn - pendingWithdrawals;
   const dailyRate = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + (Number(i.amount) * 2) / 600, 0), [investments]);
   const expectedTotal = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + Number(i.amount) * 2, 0), [investments]);
-  // Capping % reflects ONLY ROI progress against the 200% cap (commissions are separate, uncapped income).
-  const cappingPercent = roiCap > 0 ? Math.min((cappedEarned / roiCap) * 100, 100) : 0;
+  const cappingPercent = expectedTotal > 0 ? Math.min(((totalEarned + totalCommissions + totalMlm) / expectedTotal) * 100, 100) : 0;
   const unreadNotifs = notifications.filter(n => !n.is_read).length;
 
   // MLM derived data
