@@ -127,9 +127,9 @@ Deno.serve(async (req) => {
             .eq("status", "confirmed");
           if (!confirmedCount || confirmedCount === 0) continue;
 
-          // Commission base = 100% of investment (not 200%). dailyReturn is paid on 200% cycle,
-          // so the 100%-equivalent base for commissions is dailyReturn / 2.
-          const commissionAmount = (dailyReturn / 2) * rate;
+          // Commission paid on the downline's actual daily ROI payout (per plan).
+          // e.g. downline earns $0.333 today → L1 upline gets 10% × $0.333 = $0.0333.
+          const commissionAmount = dailyReturn * rate;
           if (commissionAmount <= 0) continue;
 
           const { error: cErr } = await supabase
