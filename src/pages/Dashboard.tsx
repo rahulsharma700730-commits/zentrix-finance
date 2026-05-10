@@ -150,12 +150,22 @@ const Dashboard = () => {
         .reduce((s: number, c: any) => s + Number(c.amount), 0),
     }));
     setDownline(flat);
-
-    if (profile?.referred_by) {
-      const { data: refData } = await supabase.from('profiles').select('full_name').eq('user_id', profile.referred_by).single();
-      setReferrerName(refData?.full_name || null);
-    }
   };
+
+  // Resolve "Referred by" name whenever profile loads/changes
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!profile?.referred_by) { setReferrerName(null); return; }
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, referral_code')
+        .eq('user_id', profile.referred_by)
+        .maybeSingle();
+      if (!cancelled) setReferrerName(data?.full_name || data?.referral_code || null);
+    })();
+    return () => { cancelled = true; };
+  }, [profile?.referred_by]);
 
   const totalInvested = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + Number(i.amount), 0), [investments]);
   const totalEarned = useMemo(() => earnings.reduce((s, e) => s + Number(e.amount), 0), [earnings]);
