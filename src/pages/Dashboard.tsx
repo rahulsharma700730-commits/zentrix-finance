@@ -552,7 +552,7 @@ const Dashboard = () => {
                       </div>
                       <div className="p-3 rounded-lg bg-muted/50 border border-border">
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Referred By</p>
-                        <p className="font-medium text-foreground truncate">{referrerName || '—'}</p>
+                        <p className="font-medium text-foreground truncate">{referrerName || (profile?.referred_by ? 'Loading…' : 'Direct Signup')}</p>
                       </div>
                     </div>
                   </CardContent>
