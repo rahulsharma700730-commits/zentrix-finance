@@ -13,6 +13,8 @@ import { FAQSection } from '@/components/landing/FAQSection';
 import { CTABanner } from '@/components/landing/CTABanner';
 import { Footer } from '@/components/landing/Footer';
 import { RewardsSection } from '@/components/landing/RewardsSection';
+import { MarketsSection } from '@/components/landing/MarketsSection';
+import { VisionSection } from '@/components/landing/VisionSection';
 
 const Index = () => (
   <div className="min-h-screen">
@@ -22,12 +24,14 @@ const Index = () => (
       <LiveTicker />
       <TrustBadges />
       <HowItWorks />
+      <MarketsSection />
       <RewardsSection />
       <InvestmentPlans />
       <ROICalculator />
       <StatsSection />
       <ComparisonSection />
       <TeamSection />
+      <VisionSection />
       <TestimonialsSection />
       <FAQSection />
       <CTABanner />
