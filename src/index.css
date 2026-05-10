@@ -6,50 +6,55 @@
 
 @layer base {
   :root {
-    --background: 40 20% 98%;
-    --foreground: 220 15% 15%;
+    /* Aventis-inspired: warm cream paper, navy ink, gold accents */
+    --background: 45 65% 95%;
+    --foreground: 222 60% 12%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 15% 15%;
+    --card: 45 55% 97%;
+    --card-foreground: 222 60% 12%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
+    --popover: 45 55% 98%;
+    --popover-foreground: 222 60% 12%;
 
-    --primary: 43 96% 56%;
-    --primary-foreground: 0 0% 5%;
+    --primary: 43 78% 48%;
+    --primary-foreground: 222 60% 10%;
 
-    --secondary: 40 10% 93%;
-    --secondary-foreground: 220 15% 20%;
+    --secondary: 222 60% 12%;
+    --secondary-foreground: 45 55% 97%;
 
-    --muted: 40 8% 93%;
-    --muted-foreground: 220 5% 42%;
+    --muted: 42 35% 90%;
+    --muted-foreground: 222 25% 35%;
 
-    --accent: 43 80% 48%;
-    --accent-foreground: 0 0% 5%;
+    --accent: 43 70% 55%;
+    --accent-foreground: 222 60% 10%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 70% 48%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 40 12% 88%;
-    --input: 40 12% 88%;
-    --ring: 43 96% 56%;
+    --border: 42 30% 82%;
+    --input: 42 30% 82%;
+    --ring: 43 78% 48%;
 
     --radius: 0.75rem;
 
-    --gold: 43 96% 56%;
-    --gold-light: 43 90% 70%;
-    --gold-dark: 43 90% 40%;
+    --gold: 43 78% 48%;
+    --gold-light: 43 85% 65%;
+    --gold-dark: 38 75% 38%;
 
-    --sidebar-background: 40 15% 97%;
-    --sidebar-foreground: 220 15% 15%;
-    --sidebar-primary: 43 96% 56%;
-    --sidebar-primary-foreground: 0 0% 5%;
-    --sidebar-accent: 40 10% 93%;
-    --sidebar-accent-foreground: 220 15% 20%;
-    --sidebar-border: 40 12% 88%;
-    --sidebar-ring: 43 96% 56%;
+    /* Navy ink — used for headings, dark CTAs in light mode */
+    --navy: 222 60% 14%;
+    --navy-foreground: 45 55% 97%;
 
-    --success: 142 76% 36%;
+    --sidebar-background: 45 55% 96%;
+    --sidebar-foreground: 222 60% 14%;
+    --sidebar-primary: 43 78% 48%;
+    --sidebar-primary-foreground: 222 60% 10%;
+    --sidebar-accent: 42 35% 90%;
+    --sidebar-accent-foreground: 222 60% 14%;
+    --sidebar-border: 42 30% 82%;
+    --sidebar-ring: 43 78% 48%;
+
+    --success: 142 70% 32%;
     --success-foreground: 0 0% 100%;
   }
 
