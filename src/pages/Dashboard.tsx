@@ -150,12 +150,22 @@ const Dashboard = () => {
         .reduce((s: number, c: any) => s + Number(c.amount), 0),
     }));
     setDownline(flat);
-
-    if (profile?.referred_by) {
-      const { data: refData } = await supabase.from('profiles').select('full_name').eq('user_id', profile.referred_by).single();
-      setReferrerName(refData?.full_name || null);
-    }
   };
+
+  // Resolve "Referred by" name whenever profile loads/changes
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!profile?.referred_by) { setReferrerName(null); return; }
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, referral_code')
+        .eq('user_id', profile.referred_by)
+        .maybeSingle();
+      if (!cancelled) setReferrerName(data?.full_name || data?.referral_code || null);
+    })();
+    return () => { cancelled = true; };
+  }, [profile?.referred_by]);
 
   const totalInvested = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + Number(i.amount), 0), [investments]);
   const totalEarned = useMemo(() => earnings.reduce((s, e) => s + Number(e.amount), 0), [earnings]);
@@ -169,7 +179,8 @@ const Dashboard = () => {
   const availableBalance = cappedEarned + totalCommissions + totalMlm - totalWithdrawn - pendingWithdrawals;
   const dailyRate = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + (Number(i.amount) * 2) / 600, 0), [investments]);
   const expectedTotal = useMemo(() => investments.filter(i => i.status === 'confirmed').reduce((s, i) => s + Number(i.amount) * 2, 0), [investments]);
-  const cappingPercent = expectedTotal > 0 ? Math.min(((totalEarned + totalCommissions + totalMlm) / expectedTotal) * 100, 100) : 0;
+  // Capping % reflects ONLY ROI progress against the 200% cap (commissions are separate, uncapped income).
+  const cappingPercent = roiCap > 0 ? Math.min((cappedEarned / roiCap) * 100, 100) : 0;
   const unreadNotifs = notifications.filter(n => !n.is_read).length;
 
   // MLM derived data
@@ -541,7 +552,7 @@ const Dashboard = () => {
                       </div>
                       <div className="p-3 rounded-lg bg-muted/50 border border-border">
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Referred By</p>
-                        <p className="font-medium text-foreground truncate">{referrerName || '—'}</p>
+                        <p className="font-medium text-foreground truncate">{referrerName || (profile?.referred_by ? 'Loading…' : 'Direct Signup')}</p>
                       </div>
                     </div>
                   </CardContent>
