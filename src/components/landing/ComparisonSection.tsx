@@ -5,7 +5,7 @@ const data = [
   { feature: 'Annual ROI', zentrix: '100%', bank: '6-8%', crypto: 'Variable' },
   { feature: 'Minimum Investment', zentrix: '$50', bank: '$1,000+', crypto: '$10' },
   { feature: 'Daily Returns', zentrix: true, bank: false, crypto: false },
-  { feature: 'Guaranteed Returns', zentrix: true, bank: true, crypto: false },
+  { feature: 'Managed Returns', zentrix: true, bank: true, crypto: false },
   { feature: 'Network', zentrix: 'USDT BEP20', bank: 'Bank Transfer', crypto: 'Multiple' },
   { feature: 'Withdrawal Speed', zentrix: '<5 Hours', bank: '3-7 Days', crypto: 'Varies' },
   { feature: 'Professional Management', zentrix: true, bank: true, crypto: false },
