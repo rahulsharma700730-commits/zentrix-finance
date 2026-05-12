@@ -51,7 +51,7 @@ export const RewardsSection = () => {
               icon: TrendingUp, title: 'Daily ROI',
               metric: '0.333%',
               sub: 'per day for 600 days',
-              body: 'Every $100 you deposit returns $0.33 daily — compounding into 200% over 20 months. Paid automatically at midnight UTC.',
+              body: 'Every $100 you deposit earns ~$0.33 daily based on trading performance, with potential up to 200% over the 20-month cycle. Paid automatically at midnight UTC.',
             },
             {
               icon: Users, title: 'Network Commissions',
