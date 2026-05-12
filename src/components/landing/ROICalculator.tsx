@@ -28,7 +28,7 @@ export const ROICalculator = () => {
           <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
             ROI <span className="text-gradient-gold">Calculator</span>
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">See exactly how your USDT investment grows over 20 months.</p>
+          <p className="text-muted-foreground max-w-xl mx-auto">Estimate your potential earnings based on our 20-month wealth management model. Actual returns vary with market conditions.</p>
         </motion.div>
 
         <motion.div
