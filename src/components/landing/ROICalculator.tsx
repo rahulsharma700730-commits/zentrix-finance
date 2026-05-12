@@ -59,7 +59,7 @@ export const ROICalculator = () => {
                   { icon: Calendar, label: 'Weekly Return', value: `$${weeklyReturn.toFixed(2)}` },
                   { icon: BarChart3, label: 'Monthly Return', value: `$${monthlyReturn.toFixed(2)}` },
                   { icon: DollarSign, label: 'Total (20mo)', value: `$${totalReturn.toLocaleString()}`, accent: true },
-                  { icon: Percent, label: 'Total ROI', value: '100%' },
+                  { icon: Percent, label: 'Return Potential', value: '100%' },
                   { icon: DollarSign, label: 'Referral Bonus', value: `$${referralBonus.toFixed(0)}` },
                 ].map((item, i) => (
                   <div key={i} className={`text-center p-4 rounded-xl border transition-all ${item.accent ? 'bg-primary/5 border-primary/20' : 'bg-background border-border'}`}>
