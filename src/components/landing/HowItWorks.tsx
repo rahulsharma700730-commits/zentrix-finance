@@ -12,7 +12,7 @@ const steps = [
     icon: TrendingUp,
     title: 'Watch Daily Growth',
     desc: 'Expert forex traders grow your portfolio. Daily returns = (Investment × 2) ÷ 600 days. Track everything live on your dashboard.',
-    highlight: '100% ROI',
+    highlight: 'Daily Earnings',
   },
   {
     icon: ArrowDownToLine,

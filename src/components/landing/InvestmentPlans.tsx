@@ -47,7 +47,7 @@ export const InvestmentPlans = () => {
           <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
             Choose Your <span className="text-gradient-gold">Plan</span>
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">All plans offer the same 100% ROI in 20 months. Invest what fits your budget.</p>
+          <p className="text-muted-foreground max-w-xl mx-auto">Flexible tiers designed to match your goals. Invest what fits your budget and grow at your own pace.</p>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">

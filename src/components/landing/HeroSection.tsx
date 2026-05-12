@@ -37,15 +37,16 @@ export const HeroSection = () => {
           </motion.div>
 
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold mb-6 text-white leading-[1.05]">
-            Double Your{' '}
-            <span className="text-gradient-gold">Investment</span>
+            Smart{' '}
+            <span className="text-gradient-gold">Wealth</span>
             <br className="hidden sm:block" />
-            <span className="text-3xl md:text-5xl lg:text-6xl font-medium text-white/70"> in Just 20 Months</span>
+            <span className="text-3xl md:text-5xl lg:text-6xl font-medium text-white/70"> Management Starts Here</span>
           </h1>
 
           <p className="text-base md:text-lg text-white/50 mb-6 max-w-2xl mx-auto leading-relaxed font-light">
-            Professional forex trading with consistent daily returns. Invest USDT (BEP20), 
-            track growth in real-time, and withdraw anytime above $20. Your money works 24/7.
+            Join a community of investors leveraging professional forex strategies. 
+            Track your portfolio in real-time, enjoy daily earnings, and withdraw flexibly. 
+            Markets move — we help you move smarter.
           </p>
 
           <motion.p
@@ -54,7 +55,7 @@ export const HeroSection = () => {
             transition={{ delay: 0.5 }}
             className="text-sm text-[hsl(43,96%,56%)]/70 mb-10 font-medium"
           >
-            ✨ $1,000 invested today → $3.33/day → $2,000 in 20 months
+            ✨ Transparent returns. Professional risk management. Your capital, your control.
           </motion.p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
@@ -81,10 +82,10 @@ export const HeroSection = () => {
             className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mb-12"
           >
             {[
-              { icon: TrendingUp, value: '100%', label: 'ROI in 20 Months' },
+              { icon: TrendingUp, value: '200%', label: 'Return Cap' },
               { icon: Shield, value: 'BEP20', label: 'USDT Network' },
-              { icon: Zap, value: 'Daily', label: 'Returns Credited' },
-              { icon: Globe, value: '24/7', label: 'Trading Active' },
+              { icon: Zap, value: 'Daily', label: 'Earnings Credited' },
+              { icon: Globe, value: '24/5', label: 'Market Access' },
             ].map((item, i) => (
               <motion.div
                 key={i}

@@ -6,7 +6,7 @@ const stats = [
   { icon: Users, value: '1,250+', label: 'Active Investors', desc: 'Growing community' },
   { icon: TrendingUp, value: '$125K+', label: 'Total Payouts', desc: 'Successfully processed' },
   { icon: Clock, value: '<5 Hrs', label: 'Withdrawal Speed', desc: 'Average processing' },
-  { icon: Award, value: '100%', label: 'ROI Guaranteed', desc: 'In 20 months' },
+  { icon: Award, value: '200%', label: 'Return Cap', desc: 'Maximum earning potential' },
   { icon: Shield, value: 'BEP20', label: 'Secure Network', desc: 'BSC blockchain' },
 ];
 

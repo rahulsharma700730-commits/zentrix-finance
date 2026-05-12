@@ -28,7 +28,7 @@ export const ROICalculator = () => {
           <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
             ROI <span className="text-gradient-gold">Calculator</span>
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">See exactly how your USDT investment grows over 20 months.</p>
+          <p className="text-muted-foreground max-w-xl mx-auto">Estimate your potential earnings based on our 20-month wealth management model. Actual returns vary with market conditions.</p>
         </motion.div>
 
         <motion.div
@@ -59,7 +59,7 @@ export const ROICalculator = () => {
                   { icon: Calendar, label: 'Weekly Return', value: `$${weeklyReturn.toFixed(2)}` },
                   { icon: BarChart3, label: 'Monthly Return', value: `$${monthlyReturn.toFixed(2)}` },
                   { icon: DollarSign, label: 'Total (20mo)', value: `$${totalReturn.toLocaleString()}`, accent: true },
-                  { icon: Percent, label: 'Total ROI', value: '100%' },
+                  { icon: Percent, label: 'Return Potential', value: '100%' },
                   { icon: DollarSign, label: 'Referral Bonus', value: `$${referralBonus.toFixed(0)}` },
                 ].map((item, i) => (
                   <div key={i} className={`text-center p-4 rounded-xl border transition-all ${item.accent ? 'bg-primary/5 border-primary/20' : 'bg-background border-border'}`}>
@@ -72,8 +72,8 @@ export const ROICalculator = () => {
 
               <div className="mt-8 p-4 rounded-xl bg-primary/5 border border-primary/10 text-center">
                 <p className="text-sm text-foreground">
-                  💡 <strong>Invest ${amount.toLocaleString()}</strong> today → Earn <strong className="text-primary">${dailyReturn.toFixed(2)}/day</strong> → 
-                  Get back <strong className="text-primary">${totalReturn.toLocaleString()}</strong> in 20 months.
+                  💡 <strong>Estimated projection for ${amount.toLocaleString()}</strong>: ~<strong className="text-primary">${dailyReturn.toFixed(2)}/day</strong> potential earnings → 
+                  Up to <strong className="text-primary">${totalReturn.toLocaleString()}</strong> over the 20-month cycle.
                   {amount >= 50 && <span className="text-muted-foreground"> Refer a friend and earn <strong className="text-primary">${referralBonus.toFixed(0)}</strong> instantly!</span>}
                 </p>
               </div>

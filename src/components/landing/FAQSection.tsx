@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const faqs = [
-  { q: 'How does Zentrix Finance work?', a: 'You invest USDT (BEP20 network), and our professional forex traders generate returns. Your investment doubles in 20 months with daily returns credited to your dashboard.' },
+  { q: 'How does Zentrix Finance work?', a: 'You invest USDT (BEP20 network), and our professional forex traders manage your capital. Daily earnings are credited to your dashboard based on market performance, with a 200% return cap over the 20-month cycle.' },
   { q: 'What network is used for USDT?', a: 'We use USDT on BEP20 (Binance Smart Chain) network for all deposits and withdrawals. This ensures fast transactions and low fees.' },
   { q: 'What is the minimum investment?', a: 'There is no strict minimum, but we recommend at least $50 for meaningful daily returns. You can invest any amount.' },
   { q: 'How are daily returns calculated?', a: 'Total return = Investment × 2 over 600 days. Daily return = (Investment × 2) / 600. Example: $1,000 investment earns ~$3.33 per day.' },
