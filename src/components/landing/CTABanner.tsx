@@ -24,7 +24,7 @@ export const CTABanner = () => {
         >
           <Sparkles className="w-10 h-10 text-[hsl(43,96%,56%)] mx-auto mb-6" />
           <h2 className="text-3xl md:text-5xl font-display font-bold text-white mb-4">
-            Ready to <span className="text-gradient-gold">Double</span> Your Money?
+            Ready to <span className="text-gradient-gold">Grow</span> Your Wealth?
           </h2>
           <p className="text-white/50 mb-8 text-lg">
             Join 1,250+ investors earning daily returns. Start with as little as $50 USDT (BEP20).
