@@ -72,8 +72,8 @@ export const ROICalculator = () => {
 
               <div className="mt-8 p-4 rounded-xl bg-primary/5 border border-primary/10 text-center">
                 <p className="text-sm text-foreground">
-                  💡 <strong>Invest ${amount.toLocaleString()}</strong> today → Earn <strong className="text-primary">${dailyReturn.toFixed(2)}/day</strong> → 
-                  Get back <strong className="text-primary">${totalReturn.toLocaleString()}</strong> in 20 months.
+                  💡 <strong>Estimated projection for ${amount.toLocaleString()}</strong>: ~<strong className="text-primary">${dailyReturn.toFixed(2)}/day</strong> potential earnings → 
+                  Up to <strong className="text-primary">${totalReturn.toLocaleString()}</strong> over the 20-month cycle.
                   {amount >= 50 && <span className="text-muted-foreground"> Refer a friend and earn <strong className="text-primary">${referralBonus.toFixed(0)}</strong> instantly!</span>}
                 </p>
               </div>
