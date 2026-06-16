@@ -3,8 +3,10 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { DollarSign, Calendar, TrendingUp, Percent, BarChart3 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export const ROICalculator = () => {
+  const { t } = useTranslation();
   const [amountInput, setAmountInput] = useState('1000');
   const amount = amountInput === '' ? 0 : Math.max(0, Number(amountInput) || 0);
 
@@ -18,49 +20,33 @@ export const ROICalculator = () => {
     <section id="calculator" className="py-24 bg-card relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-gold-subtle opacity-20" />
       <div className="container mx-auto px-4 relative">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <span className="text-sm font-medium text-primary tracking-widest uppercase mb-3 block">Plan Your Investment</span>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
+          <span className="text-sm font-medium text-primary tracking-widest uppercase mb-3 block">{t('calc.eyebrow')}</span>
           <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
-            ROI <span className="text-gradient-gold">Calculator</span>
+            {t('calc.title1')} <span className="text-gradient-gold">{t('calc.title2')}</span>
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">Estimate your potential earnings based on our 20-month wealth management model. Actual returns vary with market conditions.</p>
+          <p className="text-muted-foreground max-w-xl mx-auto">{t('calc.desc')}</p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="max-w-5xl mx-auto"
-        >
+        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="max-w-5xl mx-auto">
           <Card className="border-primary/20 shadow-gold-lg overflow-hidden">
             <CardContent className="p-8">
               <div className="text-center mb-10">
-                <label className="text-sm text-muted-foreground mb-3 block font-medium">Investment Amount (USDT - BEP20)</label>
+                <label className="text-sm text-muted-foreground mb-3 block font-medium">{t('calc.amountLabel')}</label>
                 <div className="relative max-w-sm mx-auto">
                   <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-primary w-6 h-6" />
-                  <Input
-                    type="number"
-                    value={amountInput}
-                    onChange={(e) => setAmountInput(e.target.value)}
-                    className="pl-12 text-3xl font-bold text-center h-16 border-primary/20 focus:border-primary bg-background"
-                    min={0}
-                  />
+                  <Input type="number" value={amountInput} onChange={(e) => setAmountInput(e.target.value)} className="pl-12 text-3xl font-bold text-center h-16 border-primary/20 focus:border-primary bg-background" min={0} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 {[
-                  { icon: TrendingUp, label: 'Daily Return', value: `$${dailyReturn.toFixed(2)}`, accent: true },
-                  { icon: Calendar, label: 'Weekly Return', value: `$${weeklyReturn.toFixed(2)}` },
-                  { icon: BarChart3, label: 'Monthly Return', value: `$${monthlyReturn.toFixed(2)}` },
-                  { icon: DollarSign, label: 'Total (20mo)', value: `$${totalReturn.toLocaleString()}`, accent: true },
-                  { icon: Percent, label: 'Return Potential', value: '100%' },
-                  { icon: DollarSign, label: 'Referral Bonus', value: `$${referralBonus.toFixed(0)}` },
+                  { icon: TrendingUp, label: t('calc.labels.daily'), value: `$${dailyReturn.toFixed(2)}`, accent: true },
+                  { icon: Calendar, label: t('calc.labels.weekly'), value: `$${weeklyReturn.toFixed(2)}` },
+                  { icon: BarChart3, label: t('calc.labels.monthly'), value: `$${monthlyReturn.toFixed(2)}` },
+                  { icon: DollarSign, label: t('calc.labels.total'), value: `$${totalReturn.toLocaleString()}`, accent: true },
+                  { icon: Percent, label: t('calc.labels.potential'), value: '100%' },
+                  { icon: DollarSign, label: t('calc.labels.referral'), value: `$${referralBonus.toFixed(0)}` },
                 ].map((item, i) => (
                   <div key={i} className={`text-center p-4 rounded-xl border transition-all ${item.accent ? 'bg-primary/5 border-primary/20' : 'bg-background border-border'}`}>
                     <item.icon className={`w-5 h-5 mx-auto mb-2 ${item.accent ? 'text-primary' : 'text-muted-foreground'}`} />
@@ -72,9 +58,8 @@ export const ROICalculator = () => {
 
               <div className="mt-8 p-4 rounded-xl bg-primary/5 border border-primary/10 text-center">
                 <p className="text-sm text-foreground">
-                  💡 <strong>Estimated projection for ${amount.toLocaleString()}</strong>: ~<strong className="text-primary">${dailyReturn.toFixed(2)}/day</strong> potential earnings → 
-                  Up to <strong className="text-primary">${totalReturn.toLocaleString()}</strong> over the 20-month cycle.
-                  {amount >= 50 && <span className="text-muted-foreground"> Refer a friend and earn <strong className="text-primary">${referralBonus.toFixed(0)}</strong> instantly!</span>}
+                  {t('calc.summary.prefix')} <strong>${amount.toLocaleString()}</strong>: ~<strong className="text-primary">${dailyReturn.toFixed(2)}/day</strong> {t('calc.summary.earnings')} → {t('calc.summary.up')} <strong className="text-primary">${totalReturn.toLocaleString()}</strong> {t('calc.summary.over')}
+                  {amount >= 50 && <span className="text-muted-foreground"> {t('calc.summary.refer')} <strong className="text-primary">${referralBonus.toFixed(0)}</strong> {t('calc.summary.instantly')}</span>}
                 </p>
               </div>
             </CardContent>
