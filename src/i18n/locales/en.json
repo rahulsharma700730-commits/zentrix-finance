@@ -1,0 +1,310 @@
+{
+  "lang": { "en": "English", "ru": "Russian", "label": "Language" },
+  "nav": {
+    "howItWorks": "How It Works",
+    "calculator": "Calculator",
+    "faq": "FAQ",
+    "login": "Login",
+    "startInvesting": "Start Investing",
+    "dashboard": "Dashboard",
+    "logout": "Logout"
+  },
+  "hero": {
+    "badge": "Trusted by 1,250+ Investors Worldwide",
+    "titleSmart": "Smart",
+    "titleWealth": "Wealth",
+    "titleManagement": " Management Starts Here",
+    "desc": "Join a community of investors leveraging professional forex strategies. Track your portfolio in real-time, enjoy daily earnings, and withdraw flexibly. Markets move — we help you move smarter.",
+    "tagline": "✨ Transparent returns. Professional risk management. Your capital, your control.",
+    "ctaStart": "Start Investing Now",
+    "ctaCalculate": "Calculate Your Returns",
+    "stat": {
+      "returnCap": "Return Cap",
+      "network": "USDT Network",
+      "dailyValue": "Daily",
+      "dailyLabel": "Earnings Credited",
+      "marketValue": "24/5",
+      "marketLabel": "Market Access"
+    }
+  },
+  "ticker": {
+    "deposit": "Investor #{{id}} deposited ${{amt}}",
+    "withdraw": "Investor #{{id}} withdrew ${{amt}}"
+  },
+  "trust": {
+    "title1": "Why Investors",
+    "title2": "Trust Us",
+    "items": {
+      "secure": { "t": "Secure Platform", "d": "Bank-grade security protocols" },
+      "encrypted": { "t": "Encrypted Data", "d": "End-to-end encryption" },
+      "fast": { "t": "Fast Withdrawals", "d": "Processed within 5 hours" },
+      "investors": { "t": "1,250+ Investors", "d": "Growing global community" },
+      "usdt": { "t": "USDT BEP20", "d": "Low fees, fast transactions" },
+      "verified": { "t": "Verified Traders", "d": "5+ years forex experience" }
+    }
+  },
+  "how": {
+    "eyebrow": "Simple Process",
+    "title1": "How It",
+    "title2": "Works",
+    "desc": "Three simple steps to start growing your wealth with professional forex trading.",
+    "step1": { "title": "Invest USDT (BEP20)", "desc": "Send USDT via BEP20 (BSC) network to our wallet. Admin confirms your deposit within hours. Minimum recommended: $50.", "highlight": "BEP20 Network" },
+    "step2": { "title": "Watch Daily Growth", "desc": "Expert forex traders grow your portfolio. Daily returns = (Investment × 2) ÷ 600 days. Track everything live on your dashboard.", "highlight": "Daily Earnings" },
+    "step3": { "title": "Withdraw Anytime", "desc": "Balance ≥ $20? Request withdrawal to your BEP20 USDT wallet. Processed within 5 hours by our team.", "highlight": "Within 5 Hours" }
+  },
+  "markets": {
+    "eyebrow": "Master The World's Largest Financial Markets",
+    "title1": "What",
+    "title2": "We Trade",
+    "desc": "Our institutional desk operates across 7 major asset classes with raw spreads from 0.0 pips. You get diversified, professionally-managed exposure — without ever placing a trade yourself.",
+    "cards": {
+      "forex": { "name": "Forex", "desc": "$6.6T traded daily — major, minor & exotic pairs with raw spreads from 0.0 pips." },
+      "commodities": { "name": "Commodities", "desc": "Gold, silver, oil, gas — the world's most-traded physical markets, hedged 24/5." },
+      "indices": { "name": "Indices", "desc": "US500, NAS100, DAX40, FTSE100 — broad market exposure via global index CFDs." },
+      "stocks": { "name": "Stocks", "desc": "AAPL, TSLA, AMZN, MSFT, GOOGL — fractional positioning on the world's biggest names." },
+      "crypto": { "name": "Crypto", "desc": "BTC, ETH, SOL, XRP — round-the-clock digital asset exposure, fully managed." },
+      "bonds": { "name": "Bonds", "desc": "US Treasuries & global sovereigns — lower-volatility yield component for the fund." }
+    },
+    "cfdsSuffix": "CFDs",
+    "stats": {
+      "spread": "Min. Spread (Raw)",
+      "latency": "Execution Latency",
+      "min": "Min. Investment",
+      "support": "Expert Support"
+    }
+  },
+  "rewards": {
+    "eyebrow": "How Rewards Work",
+    "title1": "Three ways to",
+    "title2": "earn",
+    "title3": "with Zentrix",
+    "desc": "Daily ROI on your deposit, multi-level network commissions paid every day, and rank bonuses that grow with your team. Every dollar you build the network earns is a dollar you can withdraw.",
+    "pillar1": { "title": "Daily ROI", "sub": "per day for 600 days", "body": "Every $100 you deposit earns ~$0.33 daily based on trading performance, with potential up to 200% over the 20-month cycle. Paid automatically at midnight UTC." },
+    "pillar2": { "title": "Network Commissions", "sub": "across 5 levels, daily", "body": "Earn 10/3/3/2/2% of every downline's daily ROI — paid into your wallet the same day they earn. No upfront bonus, just lifetime cash flow." },
+    "pillar3": { "title": "Rank Bonuses", "sub": "5 leadership tiers", "body": "Climb tiers as your team grows. Each rank unlocks higher visibility, exclusive perks, and bigger commission ceilings." },
+    "level": { "title": "5-Level Daily Commission", "desc": "When anyone in your 5-deep network earns their daily ROI, you instantly get a slice. Here's the split:", "levelShort": "L", "levelLong": "Level" },
+    "example": { "label": "Worked example:", "before": "A Level-1 referral with $1,000 invested earns", "earns": "$3.33/day", "middle": ". You receive", "youGet": "$0.33/day", "after": "from them — that's", "total": "~$200 over 20 months", "tail": "from a single direct referral. Build a real team and the math gets serious." },
+    "ladder": { "title": "Climb the Leadership Ladder", "desc": "Each tier unlocks status and stronger earnings ceilings.", "directs": "direct refs", "team": "team members", "volume": "volume" }
+  },
+  "plans": {
+    "eyebrow": "Investment Tiers",
+    "title1": "Choose Your",
+    "title2": "Plan",
+    "desc": "Flexible tiers designed to match your goals. Invest what fits your budget and grow at your own pace.",
+    "popular": "Most Popular",
+    "range": "Investment Range",
+    "daily": "Daily Return",
+    "total": "Total Return (20mo)",
+    "start": "Start Investing",
+    "tiers": {
+      "starter": "Starter",
+      "growth": "Growth",
+      "premium": "Premium"
+    },
+    "features": {
+      "daily": "Daily Returns",
+      "dashboard": "Dashboard Access",
+      "withdraw": "Withdrawal ≥ $20",
+      "referral": "Referral 10%",
+      "priority": "Priority Support",
+      "fast": "Fast Withdrawal"
+    }
+  },
+  "calc": {
+    "eyebrow": "Plan Your Investment",
+    "title1": "ROI",
+    "title2": "Calculator",
+    "desc": "Estimate your potential earnings based on our 20-month wealth management model. Actual returns vary with market conditions.",
+    "amountLabel": "Investment Amount (USDT - BEP20)",
+    "labels": {
+      "daily": "Daily Return",
+      "weekly": "Weekly Return",
+      "monthly": "Monthly Return",
+      "total": "Total (20mo)",
+      "potential": "Return Potential",
+      "referral": "Referral Bonus"
+    },
+    "summary": {
+      "prefix": "💡 Estimated projection for",
+      "earnings": "potential earnings",
+      "up": "Up to",
+      "over": "over the 20-month cycle.",
+      "refer": "Refer a friend and earn",
+      "instantly": "instantly!"
+    }
+  },
+  "stats": {
+    "eyebrow": "Platform Stats",
+    "title1": "Numbers That",
+    "title2": "Speak",
+    "items": {
+      "invested": { "label": "Total Invested", "desc": "Across all investors" },
+      "active": { "label": "Active Investors", "desc": "Growing community" },
+      "payouts": { "label": "Total Payouts", "desc": "Successfully processed" },
+      "speed": { "label": "Withdrawal Speed", "desc": "Average processing" },
+      "cap": { "label": "Return Cap", "desc": "Maximum earning potential" },
+      "network": { "label": "Secure Network", "desc": "BSC blockchain" }
+    }
+  },
+  "compare": {
+    "eyebrow": "Compare & Choose",
+    "title1": "Why Choose",
+    "title2": "Zentrix?",
+    "desc": "See how we outperform traditional investment options.",
+    "headers": { "feature": "Feature", "bank": "Bank FD", "crypto": "Crypto Staking" },
+    "rows": {
+      "roi": "Annual ROI",
+      "min": "Minimum Investment",
+      "daily": "Daily Returns",
+      "managed": "Managed Returns",
+      "network": "Network",
+      "speed": "Withdrawal Speed",
+      "pm": "Professional Management",
+      "referral": "Referral Bonus"
+    },
+    "values": {
+      "variable": "Variable",
+      "multiple": "Multiple",
+      "bankTransfer": "Bank Transfer",
+      "varies": "Varies",
+      "instant10": "10% Instant",
+      "none": "None",
+      "days": "3-7 Days",
+      "fast": "<5 Hours"
+    }
+  },
+  "team": {
+    "eyebrow": "About Us",
+    "title1": "Meet",
+    "title2": "Zentrix Finance",
+    "desc": "Professional traders with years of forex market experience.",
+    "card": {
+      "subtitle": "Professional Forex Trading Fund",
+      "body": "Our team of experienced forex traders leverages advanced strategies and deep market analysis to generate consistent returns. We operate 24/7, trading on major currency pairs to maximize your investment growth."
+    },
+    "badges": {
+      "verified": "Verified",
+      "years": "5+ Years",
+      "global": "Global",
+      "forex": "Forex Expert",
+      "clients": "1250+ Clients",
+      "trading": "24/7 Trading"
+    }
+  },
+  "vision": {
+    "eyebrow": "Future Goals",
+    "title1": "Zentrix",
+    "title2": "Future Vision",
+    "desc": "Profit with purpose. Beyond delivering consistent returns, Zentrix Finance is committed to creating initiatives that inspire growth, independence and equal access to success.",
+    "pillars": {
+      "child": { "title": "Child Welfare", "desc": "A measured share of our annual profits funds child welfare programs — nutrition, healthcare and safe shelter for vulnerable children worldwide." },
+      "edu": { "title": "Education", "desc": "Scholarships and digital-learning grants for underprivileged students. We believe access to education is the highest-yield investment of all." },
+      "women": { "title": "Women Empowerment", "desc": "Micro-finance and entrepreneurship grants enabling women to launch sustainable businesses and rise as community leaders." }
+    },
+    "partner": {
+      "eyebrow": "Partner With Zentrix & Earn Unlimited",
+      "title": "5-Level Referral Program — No Cap on Income",
+      "desc": "Earn daily commission on every dollar your network earns. Real-time tracking, transparent reports, and a global opportunity for influencers, traders and agencies."
+    }
+  },
+  "testimonials": {
+    "eyebrow": "Testimonials",
+    "title1": "Investor",
+    "title2": "Reviews",
+    "desc": "Hear from satisfied investors around the world.",
+    "invested": "Invested",
+    "items": {
+      "0": { "text": "Started with $1,000 and already earned $500 in daily returns. The dashboard makes it so easy to track everything. Highly professional!" },
+      "1": { "text": "Best investment platform I've found. Daily returns are consistent and withdrawals are processed within hours. BEP20 makes it fast!" },
+      "2": { "text": "The referral program is amazing! Earned 10% instantly just by sharing with friends. Dashboard shows everything clearly." },
+      "3": { "text": "Transparent, reliable, and professional. My portfolio grows every single day. Best decision I made this year." }
+    }
+  },
+  "faq": {
+    "eyebrow": "Got Questions?",
+    "title1": "Frequently Asked",
+    "title2": "Questions",
+    "items": [
+      { "q": "How does Zentrix Finance work?", "a": "You invest USDT (BEP20 network), and our professional forex traders manage your capital. Daily earnings are credited to your dashboard based on market performance, with a 200% return cap over the 20-month cycle." },
+      { "q": "What network is used for USDT?", "a": "We use USDT on BEP20 (Binance Smart Chain) network for all deposits and withdrawals. This ensures fast transactions and low fees." },
+      { "q": "What is the minimum investment?", "a": "There is no strict minimum, but we recommend at least $50 for meaningful daily returns. You can invest any amount." },
+      { "q": "How are daily returns calculated?", "a": "Total return = Investment × 2 over 600 days. Daily return = (Investment × 2) / 600. Example: $1,000 investment earns ~$3.33 per day." },
+      { "q": "When can I withdraw?", "a": "Anytime your available balance reaches $20 or more. Withdrawals go to your BEP20 USDT wallet and are processed within 5 hours." },
+      { "q": "How does the referral program work?", "a": "Share your unique referral link. When someone invests through your link, you instantly receive 10% of their investment as a commission — credited immediately." },
+      { "q": "Is my investment safe?", "a": "Our experienced traders use risk-managed strategies. All transactions are in USDT on the BEP20 blockchain, ensuring transparency and security." },
+      { "q": "How do I deposit?", "a": "After signing up, go to Deposit in your dashboard. Send USDT (BEP20) to the provided wallet address and submit your transaction hash for admin confirmation." }
+    ]
+  },
+  "cta": {
+    "title1": "Ready to",
+    "title2": "Grow",
+    "title3": "Your Wealth?",
+    "desc": "Join 1,250+ investors earning daily returns. Start with as little as $50 USDT (BEP20).",
+    "create": "Create Free Account",
+    "loginDash": "Login to Dashboard"
+  },
+  "footer": {
+    "tagline": "Professional forex trading fund delivering consistent daily returns to investors worldwide via USDT BEP20 network.",
+    "quick": "Quick Links",
+    "investors": "Investors",
+    "contactLegal": "Contact & Legal",
+    "about": "About Us",
+    "contact": "Contact",
+    "login": "Login",
+    "signup": "Sign Up",
+    "dashboard": "Dashboard",
+    "calc": "ROI Calculator",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "network": "Network: USDT (BEP20 / BSC)",
+    "rights": "© {{year}} Zentrix Finance. All rights reserved. Trading involves risk. Past performance does not guarantee future results."
+  },
+  "auth": {
+    "back": "Back to Home",
+    "backLogin": "Back to Login",
+    "title": "Zentrix Finance",
+    "subtitle": "Secure Investment Portal — USDT BEP20",
+    "tabLogin": "Login",
+    "tabSignup": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full Name",
+    "refCode": "Referral Code",
+    "optional": "(Optional)",
+    "namePh": "John Doe",
+    "emailPh": "investor@example.com",
+    "passPh": "••••••••",
+    "passMinPh": "Min 6 characters",
+    "refPh": "Enter referral code",
+    "loginBtn": "Login",
+    "loggingIn": "Logging in...",
+    "createBtn": "Create Account",
+    "creating": "Creating account...",
+    "forgot": "Forgot Password?",
+    "forgotTitle": "Forgot Password",
+    "forgotDesc": "Enter your email and we'll send you a reset link.",
+    "sendReset": "Send Reset Link",
+    "sending": "Sending...",
+    "footerLabels": { "secure": "Secure", "roi": "200% ROI", "bep": "BEP20" },
+    "toast": {
+      "welcome": "Welcome back!",
+      "created": "Account created successfully! You can now login.",
+      "passMin": "Password must be at least 6 characters",
+      "needEmail": "Please enter your email",
+      "resetSent": "Password reset link sent to your email!",
+      "passUpdated": "Password updated successfully!",
+      "passMismatch": "Passwords do not match"
+    },
+    "reset": {
+      "title": "Reset Password",
+      "newDesc": "Enter your new password below",
+      "invalid": "Invalid or expired recovery link. Please request a new one.",
+      "newPass": "New Password",
+      "confirm": "Confirm Password",
+      "confirmPh": "Confirm new password",
+      "update": "Update Password",
+      "updating": "Updating...",
+      "goLogin": "Go to Login"
+    }
+  }
+}
