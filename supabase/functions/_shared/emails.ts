@@ -5,7 +5,7 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM = "Zentrix Finance <noreply@zentrixfinance.com>";
 const REPLY_TO = "support@zentrixfinance.com";
 const SITE_URL = "https://zentrixfinance.com";
-const LOGO_URL = `${SITE_URL}/logo.png`;
+const LOGO_URL = `${SITE_URL}/icon-512.png`;
 
 const GOLD = "#FFD700";
 const BG = "#0A0A0A";
@@ -26,8 +26,9 @@ function shell(title: string, preheader: string, inner: string): string {
   <tr><td align="center">
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:${CARD};border:1px solid #1f1f1f;border-radius:14px;overflow:hidden;">
       <tr><td style="padding:28px 32px;border-bottom:1px solid #1f1f1f;text-align:center;">
-        <div style="font-size:22px;font-weight:700;letter-spacing:2px;color:${GOLD};">ZENTRIX <span style="color:${TEXT};">FINANCE</span></div>
-        <div style="font-size:11px;color:${MUTED};letter-spacing:3px;margin-top:4px;">WEALTH MANAGEMENT</div>
+        <img src="${LOGO_URL}" alt="Zentrix Finance" width="56" height="56" style="display:inline-block;border:0;outline:none;text-decoration:none;border-radius:12px;margin-bottom:10px;"/>
+        <div style="font-size:20px;font-weight:600;color:${TEXT};font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Zentrix <span style="color:${GOLD};">Finance</span></div>
+        <div style="font-size:11px;color:${MUTED};letter-spacing:2px;margin-top:4px;text-transform:uppercase;">Wealth Management</div>
       </td></tr>
       <tr><td style="padding:32px;">${inner}</td></tr>
       <tr><td style="padding:20px 32px;border-top:1px solid #1f1f1f;text-align:center;color:${MUTED};font-size:12px;line-height:1.6;">
