@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, TrendingUp, Shield, Zap, Globe, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Hero3D } from './Hero3D';
 
 export const HeroSection = () => {
   const navigate = useNavigate();
@@ -18,6 +19,9 @@ export const HeroSection = () => {
       </div>
 
       <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, hsl(43 96% 56%) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+
+      <Hero3D className="absolute inset-0 z-[1] opacity-70" />
+
 
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
