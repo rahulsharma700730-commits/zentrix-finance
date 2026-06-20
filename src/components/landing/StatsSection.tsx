@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Users, DollarSign, TrendingUp, Award, Clock, Shield } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Scene3D } from './Hero3D';
 
 export const StatsSection = () => {
   const { t } = useTranslation();
@@ -15,6 +16,7 @@ export const StatsSection = () => {
   return (
     <section className="py-20 bg-background relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-gold-subtle opacity-20" />
+      <Scene3D variant="shards" className="absolute inset-0 opacity-50" />
       <div className="container mx-auto px-4 relative">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
           <span className="text-sm font-medium text-primary tracking-widest uppercase mb-3 block">{t('stats.eyebrow')}</span>

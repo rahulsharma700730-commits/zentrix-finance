@@ -1,5 +1,6 @@
 import { Banknote, Bitcoin, BarChart3, LineChart, Building2, Coins } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Scene3D } from './Hero3D';
 
 export const MarketsSection = () => {
   const { t } = useTranslation();
@@ -20,6 +21,7 @@ export const MarketsSection = () => {
   return (
     <section className="py-20 bg-background relative overflow-hidden">
       <div className="absolute inset-0 bg-grid-faint opacity-40 pointer-events-none" />
+      <Scene3D variant="coins" className="absolute inset-0 opacity-40" />
       <div className="container mx-auto px-4 relative">
         <div className="text-center max-w-3xl mx-auto mb-14">
           <p className="text-xs sm:text-sm tracking-[0.2em] uppercase text-muted-foreground mb-3">{t('markets.eyebrow')}</p>
