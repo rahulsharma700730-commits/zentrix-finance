@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Scene3D } from './Hero3D';
 
 export const CTABanner = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export const CTABanner = () => {
         <div className="absolute top-0 left-1/3 w-[400px] h-[400px] rounded-full bg-[hsl(43,96%,56%)]/10 blur-[120px]" />
         <div className="absolute bottom-0 right-1/3 w-[300px] h-[300px] rounded-full bg-[hsl(43,90%,40%)]/10 blur-[100px]" />
       </div>
+      <Scene3D variant="cta" className="absolute inset-0 opacity-60" />
 
       <div className="container mx-auto px-4 relative z-10">
         <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center max-w-3xl mx-auto">
