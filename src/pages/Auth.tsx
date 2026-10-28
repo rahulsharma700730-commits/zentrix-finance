@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { ArrowLeft, Eye, EyeOff, Shield, TrendingUp, Zap, Mail } from 'lucide-react';
+import { invokeEdge } from '@/lib/invokeEdge';
 import { useTranslation } from 'react-i18next';
 import logo from '@/assets/logo.png';
 
@@ -65,12 +66,13 @@ const Auth = () => {
     e.preventDefault();
     if (!signupEmail.trim()) { toast.error(t('auth.toast.needEmail')); return; }
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke('send-otp', {
-      body: { email: signupEmail.trim(), purpose: 'signup' },
+    const { errorMessage } = await invokeEdge('send-otp', {
+      email: signupEmail.trim(),
+      purpose: 'signup',
     });
     setLoading(false);
-    if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || 'Failed to send code');
+    if (errorMessage) {
+      toast.error(errorMessage);
       return;
     }
     toast.success('We sent a 6-digit code to your email');
