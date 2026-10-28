@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { invokeEdge } from '@/lib/invokeEdge';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -447,7 +448,6 @@ const AdminDashboard = () => {
   const handleChangePassword = async () => {
     if (!changingPasswordUserId || !newPassword.trim()) { toast.error('Enter new password'); return; }
     if (newPassword.length < 6) { toast.error('Password must be at least 6 characters'); return; }
-    const { data: { session } } = await supabase.auth.getSession();
     const { errorMessage } = await invokeEdge('admin-update-user', {
       action: 'change_password',
       user_id: changingPasswordUserId,
