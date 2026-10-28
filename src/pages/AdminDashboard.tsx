@@ -447,17 +447,18 @@ const AdminDashboard = () => {
   const handleChangePassword = async () => {
     if (!changingPasswordUserId || !newPassword.trim()) { toast.error('Enter new password'); return; }
     if (newPassword.length < 6) { toast.error('Password must be at least 6 characters'); return; }
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await supabase.functions.invoke('admin-update-user', {
-        body: { action: 'change_password', user_id: changingPasswordUserId, password: newPassword },
-      });
-      if (response.error) throw response.error;
-      toast.success('Password changed successfully');
-      setChangingPasswordUserId(null); setNewPassword('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to change password');
+    const { data: { session } } = await supabase.auth.getSession();
+    const { errorMessage } = await invokeEdge('admin-update-user', {
+      action: 'change_password',
+      user_id: changingPasswordUserId,
+      password: newPassword,
+    });
+    if (errorMessage) {
+      toast.error(errorMessage);
+      return;
     }
+    toast.success('Password changed successfully');
+    setChangingPasswordUserId(null); setNewPassword('');
   };
 
   const handleChangeWallet = async () => {

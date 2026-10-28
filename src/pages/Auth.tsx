@@ -137,12 +137,14 @@ const Auth = () => {
     if (resetCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
     if (resetPassword.length < 6) { toast.error(t('auth.toast.passMin')); return; }
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke('verify-reset', {
-      body: { email: resetEmail.trim(), code: resetCode, newPassword: resetPassword },
+    const { errorMessage } = await invokeEdge('verify-reset', {
+      email: resetEmail.trim(),
+      code: resetCode,
+      newPassword: resetPassword,
     });
     setLoading(false);
-    if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || 'Reset failed');
+    if (errorMessage) {
+      toast.error(errorMessage);
       return;
     }
     toast.success('Password updated. Please log in.');
