@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { ArrowLeft, Eye, EyeOff, Shield, TrendingUp, Zap, Mail } from 'lucide-react';
-import { invokeEdge } from '@/lib/invokeEdge';
 import { useTranslation } from 'react-i18next';
 import logo from '@/assets/logo.png';
 
