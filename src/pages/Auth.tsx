@@ -85,18 +85,21 @@ const Auth = () => {
     if (!signupName.trim()) { toast.error('Please enter your full name'); return; }
     if (signupPassword.length < 6) { toast.error(t('auth.toast.passMin')); return; }
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke('verify-signup', {
-      body: {
-        email: signupEmail.trim(),
-        code: signupCode,
-        password: signupPassword,
-        fullName: signupName.trim(),
-        referralCode: signupReferral.trim() || undefined,
-      },
+    const { errorMessage } = await invokeEdge('verify-signup', {
+      email: signupEmail.trim(),
+      code: signupCode,
+      password: signupPassword,
+      fullName: signupName.trim(),
+      referralCode: signupReferral.trim() || undefined,
     });
-    if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || 'Verification failed');
+    if (errorMessage) {
+      toast.error(errorMessage);
       setLoading(false);
+      // Friendly hand-off when the email is already registered.
+      if (/already|registered|exists/i.test(errorMessage)) {
+        setTab('login');
+        setEmail(signupEmail.trim());
+      }
       return;
     }
     // Auto sign-in
@@ -116,12 +119,13 @@ const Auth = () => {
     e.preventDefault();
     if (!resetEmail.trim()) { toast.error(t('auth.toast.needEmail')); return; }
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke('send-otp', {
-      body: { email: resetEmail.trim(), purpose: 'password_reset' },
+    const { errorMessage } = await invokeEdge('send-otp', {
+      email: resetEmail.trim(),
+      purpose: 'password_reset',
     });
     setLoading(false);
-    if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || 'Failed to send code');
+    if (errorMessage) {
+      toast.error(errorMessage);
       return;
     }
     toast.success('If an account exists, a 6-digit code has been sent');
