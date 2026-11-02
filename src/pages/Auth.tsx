@@ -82,7 +82,7 @@ const Auth = () => {
     e.preventDefault();
     if (signupCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
     if (!signupName.trim()) { toast.error('Please enter your full name'); return; }
-    if (signupPassword.length < 6) { toast.error(t('auth.toast.passMin')); return; }
+    if (!signupPassword) { toast.error(t('auth.toast.passMin')); return; }
     setLoading(true);
     const { errorMessage } = await invokeEdge('verify-signup', {
       email: signupEmail.trim(),
@@ -134,7 +134,7 @@ const Auth = () => {
   const completeReset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (resetCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
-    if (resetPassword.length < 6) { toast.error(t('auth.toast.passMin')); return; }
+    if (!resetPassword) { toast.error(t('auth.toast.passMin')); return; }
     setLoading(true);
     const { errorMessage } = await invokeEdge('verify-reset', {
       email: resetEmail.trim(),
