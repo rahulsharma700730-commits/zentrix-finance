@@ -157,12 +157,12 @@ const Dashboard = () => {
     let cancelled = false;
     (async () => {
       if (!profile?.referred_by) { setReferrerName(null); return; }
-      const { data } = await supabase
-        .from('profiles')
-        .select('full_name, referral_code')
-        .eq('user_id', profile.referred_by)
-        .maybeSingle();
-      if (!cancelled) setReferrerName(data?.full_name || data?.referral_code || null);
+      const { data, error } = await supabase.rpc('get_referrer_info', { _user_id: profile.referred_by });
+      if (!cancelled) {
+        const row = Array.isArray(data) ? data[0] : data;
+        setReferrerName(row?.full_name || row?.referral_code || null);
+        if (error) console.warn('referrer lookup failed', error.message);
+      }
     })();
     return () => { cancelled = true; };
   }, [profile?.referred_by]);
