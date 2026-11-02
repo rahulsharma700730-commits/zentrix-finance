@@ -537,6 +537,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_referrer_info: {
+        Args: { _user_id: string }
+        Returns: {
+          full_name: string
+          referral_code: string
+        }[]
+      }
       get_upline_chain: {
         Args: { _max_levels?: number; _user_id: string }
         Returns: {

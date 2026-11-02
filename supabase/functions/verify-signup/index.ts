@@ -24,9 +24,6 @@ Deno.serve(async (req) => {
     if (!email || !code || !password || !fullName) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (typeof password !== "string" || password.length < 6) {
-      return new Response(JSON.stringify({ error: "Password must be at least 6 characters" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
     if (!/^\d{6}$/.test(String(code))) {
       return new Response(JSON.stringify({ error: "Invalid code" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

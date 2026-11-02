@@ -274,7 +274,7 @@
     "namePh": "John Doe",
     "emailPh": "investor@example.com",
     "passPh": "••••••••",
-    "passMinPh": "Min 6 characters",
+    "passMinPh": "Any password you like",
     "refPh": "Enter referral code",
     "loginBtn": "Login",
     "loggingIn": "Logging in...",
@@ -289,7 +289,7 @@
     "toast": {
       "welcome": "Welcome back!",
       "created": "Account created successfully! You can now login.",
-      "passMin": "Password must be at least 6 characters",
+      "passMin": "Please enter a password",
       "needEmail": "Please enter your email",
       "resetSent": "Password reset link sent to your email!",
       "passUpdated": "Password updated successfully!",
