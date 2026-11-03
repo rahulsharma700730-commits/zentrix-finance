@@ -882,6 +882,9 @@ const AdminDashboard = () => {
                 <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openBlockDialog(selectedUser)}>
                   {selectedUser.is_blocked ? <><Unlock className="w-3 h-3 mr-1" /> Unblock</> : <><Ban className="w-3 h-3 mr-1" /> Block</>}
                 </Button>
+                <Button size="sm" variant="outline" className="h-8 text-xs text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog(selectedUser)}>
+                  <Trash2 className="w-3 h-3 mr-1" /> Delete
+                </Button>
                 <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { setChangingWalletUserId(selectedUser.user_id); setNewWallet(selectedUser.wallet_address || ''); }}>
                   <Wallet className="w-3 h-3 mr-1" /> Wallet
                 </Button>
