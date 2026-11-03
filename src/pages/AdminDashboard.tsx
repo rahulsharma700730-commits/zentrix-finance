@@ -850,6 +850,7 @@ const AdminDashboard = () => {
         {rejectionDialog}
         {holdDialog}
         {blockDialog}
+        {deleteDialog}
         {usdtConfirmDialog}
         {sendDialog}
         {auditDialog}
@@ -1087,6 +1088,7 @@ const AdminDashboard = () => {
           {rejectionDialog}
           {holdDialog}
           {blockDialog}
+          {deleteDialog}
           {usdtConfirmDialog}
           {sendDialog}
           {auditDialog}
