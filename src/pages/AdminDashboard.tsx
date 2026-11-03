@@ -764,6 +764,55 @@ const AdminDashboard = () => {
     </AlertDialog>
   );
 
+  const deleteDialog = (
+    <AlertDialog open={!!deletingUser} onOpenChange={(o) => { if (!o) { setDeletingUser(null); setDeleteConfirmEmail(''); } }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-display text-destructive">Permanently Delete This Account?</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-2">
+              <p>
+                You are about to permanently delete <strong>{deletingUser?.full_name || deletingUser?.email}</strong>{' '}
+                ({deletingUser?.email}). This cannot be undone.
+              </p>
+              <ul className="list-disc pl-4 text-xs space-y-1">
+                <li>All investments, daily earnings and withdrawal history are erased</li>
+                <li>Referral commissions earned from this account and their team are erased</li>
+                <li>Their team members stay but become direct signups (referrer link removed)</li>
+                <li>Support tickets and notifications for this account are erased</li>
+              </ul>
+              <p className="text-destructive font-medium text-xs">
+                Prefer blocking the account if you only need to suspend access — blocking is reversible, deletion is not.
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="space-y-2">
+          <Label className="text-foreground">
+            Type the account email <span className="font-mono text-destructive">{deletingUser?.email}</span> to confirm
+          </Label>
+          <Input
+            value={deleteConfirmEmail}
+            onChange={e => setDeleteConfirmEmail(e.target.value)}
+            placeholder="Type the exact email address"
+            autoComplete="off"
+          />
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={confirmDeleteUser}
+            disabled={isDeleting || deleteConfirmEmail.trim().toLowerCase() !== (deletingUser?.email || '').toLowerCase()}
+            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+          >
+            {isDeleting ? 'Deleting…' : 'Delete Forever'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
+
   // USDT SAVE CONFIRMATION
   const usdtConfirmDialog = (
     <AlertDialog open={confirmSaveUsdt} onOpenChange={setConfirmSaveUsdt}>
