@@ -1309,6 +1309,9 @@ const AdminDashboard = () => {
                             <Button size="sm" variant="outline" className="text-[10px] h-7 px-2" onClick={() => openBlockDialog(u)}>
                               {u.is_blocked ? <Unlock className="w-3 h-3" /> : <Ban className="w-3 h-3" />}
                             </Button>
+                            <Button size="sm" variant="outline" className="text-[10px] h-7 px-2 text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog(u)} title="Delete user permanently">
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
