@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import {
   Users, DollarSign, TrendingUp, AlertTriangle, CheckCircle, XCircle,
   Ban, Unlock, Eye, ArrowLeft, Shield, Settings, BarChart3, UserCheck, Link2,
-  Bell, MessageSquare, Upload, Image as ImageIcon, Send, Key, Copy, Wallet, PauseCircle, PlayCircle, Save
+  Bell, MessageSquare, Upload, Image as ImageIcon, Send, Key, Copy, Wallet, PauseCircle, PlayCircle, Save, Trash2
 } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -109,6 +109,11 @@ const AdminDashboard = () => {
   // Block / Unblock dialog
   const [blockingUser, setBlockingUser] = useState<any | null>(null);
   const [blockReason, setBlockReason] = useState('');
+
+  // Delete user dialog (destructive — requires typing the account email)
+  const [deletingUser, setDeletingUser] = useState<any | null>(null);
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // USDT save confirmation
   const [confirmSaveUsdt, setConfirmSaveUsdt] = useState(false);
