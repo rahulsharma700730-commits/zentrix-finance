@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import {
   Users, DollarSign, TrendingUp, AlertTriangle, CheckCircle, XCircle,
   Ban, Unlock, Eye, ArrowLeft, Shield, Settings, BarChart3, UserCheck, Link2,
-  Bell, MessageSquare, Upload, Image as ImageIcon, Send, Key, Copy, Wallet, PauseCircle, PlayCircle, Save
+  Bell, MessageSquare, Upload, Image as ImageIcon, Send, Key, Copy, Wallet, PauseCircle, PlayCircle, Save, Trash2
 } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -109,6 +109,11 @@ const AdminDashboard = () => {
   // Block / Unblock dialog
   const [blockingUser, setBlockingUser] = useState<any | null>(null);
   const [blockReason, setBlockReason] = useState('');
+
+  // Delete user dialog (destructive — requires typing the account email)
+  const [deletingUser, setDeletingUser] = useState<any | null>(null);
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // USDT save confirmation
   const [confirmSaveUsdt, setConfirmSaveUsdt] = useState(false);
@@ -445,6 +450,31 @@ const AdminDashboard = () => {
     fetchAll();
   };
 
+  const openDeleteDialog = (u: any) => {
+    setDeletingUser(u);
+    setDeleteConfirmEmail('');
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!deletingUser) return;
+    if (deleteConfirmEmail.trim().toLowerCase() !== (deletingUser.email || '').toLowerCase()) {
+      toast.error('The typed email does not match this account');
+      return;
+    }
+    setIsDeleting(true);
+    const { errorMessage } = await invokeEdge('admin-delete-user', {
+      user_id: deletingUser.user_id,
+      confirm_email: deleteConfirmEmail.trim(),
+    });
+    setIsDeleting(false);
+    if (errorMessage) { toast.error(errorMessage); return; }
+    toast.success(`${deletingUser.full_name || deletingUser.email} was permanently deleted`);
+    setDeletingUser(null);
+    setDeleteConfirmEmail('');
+    if (selectedUser && selectedUser.id === deletingUser?.id) setSelectedUser(null);
+    fetchAll();
+  };
+
   const handleChangePassword = async () => {
     if (!changingPasswordUserId || !newPassword.trim()) { toast.error('Enter new password'); return; }
     if (newPassword.length < 6) { toast.error('Password must be at least 6 characters'); return; }
@@ -734,6 +764,55 @@ const AdminDashboard = () => {
     </AlertDialog>
   );
 
+  const deleteDialog = (
+    <AlertDialog open={!!deletingUser} onOpenChange={(o) => { if (!o) { setDeletingUser(null); setDeleteConfirmEmail(''); } }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-display text-destructive">Permanently Delete This Account?</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-2">
+              <p>
+                You are about to permanently delete <strong>{deletingUser?.full_name || deletingUser?.email}</strong>{' '}
+                ({deletingUser?.email}). This cannot be undone.
+              </p>
+              <ul className="list-disc pl-4 text-xs space-y-1">
+                <li>All investments, daily earnings and withdrawal history are erased</li>
+                <li>Referral commissions earned from this account and their team are erased</li>
+                <li>Their team members stay but become direct signups (referrer link removed)</li>
+                <li>Support tickets and notifications for this account are erased</li>
+              </ul>
+              <p className="text-destructive font-medium text-xs">
+                Prefer blocking the account if you only need to suspend access — blocking is reversible, deletion is not.
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="space-y-2">
+          <Label className="text-foreground">
+            Type the account email <span className="font-mono text-destructive">{deletingUser?.email}</span> to confirm
+          </Label>
+          <Input
+            value={deleteConfirmEmail}
+            onChange={e => setDeleteConfirmEmail(e.target.value)}
+            placeholder="Type the exact email address"
+            autoComplete="off"
+          />
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={confirmDeleteUser}
+            disabled={isDeleting || deleteConfirmEmail.trim().toLowerCase() !== (deletingUser?.email || '').toLowerCase()}
+            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+          >
+            {isDeleting ? 'Deleting…' : 'Delete Forever'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
+
   // USDT SAVE CONFIRMATION
   const usdtConfirmDialog = (
     <AlertDialog open={confirmSaveUsdt} onOpenChange={setConfirmSaveUsdt}>
@@ -771,6 +850,7 @@ const AdminDashboard = () => {
         {rejectionDialog}
         {holdDialog}
         {blockDialog}
+        {deleteDialog}
         {usdtConfirmDialog}
         {sendDialog}
         {auditDialog}
@@ -801,6 +881,9 @@ const AdminDashboard = () => {
               <div className="flex gap-2 flex-wrap">
                 <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openBlockDialog(selectedUser)}>
                   {selectedUser.is_blocked ? <><Unlock className="w-3 h-3 mr-1" /> Unblock</> : <><Ban className="w-3 h-3 mr-1" /> Block</>}
+                </Button>
+                <Button size="sm" variant="outline" className="h-8 text-xs text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog(selectedUser)}>
+                  <Trash2 className="w-3 h-3 mr-1" /> Delete
                 </Button>
                 <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { setChangingWalletUserId(selectedUser.user_id); setNewWallet(selectedUser.wallet_address || ''); }}>
                   <Wallet className="w-3 h-3 mr-1" /> Wallet
@@ -1008,6 +1091,7 @@ const AdminDashboard = () => {
           {rejectionDialog}
           {holdDialog}
           {blockDialog}
+          {deleteDialog}
           {usdtConfirmDialog}
           {sendDialog}
           {auditDialog}
@@ -1227,6 +1311,9 @@ const AdminDashboard = () => {
                             </Button>
                             <Button size="sm" variant="outline" className="text-[10px] h-7 px-2" onClick={() => openBlockDialog(u)}>
                               {u.is_blocked ? <Unlock className="w-3 h-3" /> : <Ban className="w-3 h-3" />}
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-[10px] h-7 px-2 text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog(u)} title="Delete user permanently">
+                              <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>
                         </td>
