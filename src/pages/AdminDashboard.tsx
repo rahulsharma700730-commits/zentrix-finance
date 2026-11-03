@@ -450,6 +450,31 @@ const AdminDashboard = () => {
     fetchAll();
   };
 
+  const openDeleteDialog = (u: any) => {
+    setDeletingUser(u);
+    setDeleteConfirmEmail('');
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!deletingUser) return;
+    if (deleteConfirmEmail.trim().toLowerCase() !== (deletingUser.email || '').toLowerCase()) {
+      toast.error('The typed email does not match this account');
+      return;
+    }
+    setIsDeleting(true);
+    const { errorMessage } = await invokeEdge('admin-delete-user', {
+      user_id: deletingUser.user_id,
+      confirm_email: deleteConfirmEmail.trim(),
+    });
+    setIsDeleting(false);
+    if (errorMessage) { toast.error(errorMessage); return; }
+    toast.success(`${deletingUser.full_name || deletingUser.email} was permanently deleted`);
+    setDeletingUser(null);
+    setDeleteConfirmEmail('');
+    if (selectedUser && selectedUser.id === deletingUser?.id) setSelectedUser(null);
+    fetchAll();
+  };
+
   const handleChangePassword = async () => {
     if (!changingPasswordUserId || !newPassword.trim()) { toast.error('Enter new password'); return; }
     if (newPassword.length < 6) { toast.error('Password must be at least 6 characters'); return; }
